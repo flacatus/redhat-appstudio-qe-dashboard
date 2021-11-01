@@ -1,4 +1,4 @@
-import React from 'react';
+/*import React from 'react';
 import {
   Button,
   DataList,
@@ -24,10 +24,12 @@ import {
   Alert,
   Tooltip
 } from '@patternfly/react-core';
+import { useEffect, useMemo, useState } from 'react';
 import CodeBranchIcon from '@patternfly/react-icons/dist/esm/icons/code-branch-icon';
 import AngleRightIcon from '@patternfly/react-icons/dist/esm/icons/angle-right-icon';
 import SearchIcon from '@patternfly/react-icons/dist/esm/icons/search-icon';
 import {DashboardCards, DashboardCards2} from './DashboardCards';
+import axios from 'axios';
 
 export class DashboardContent extends React.Component {
   constructor(props) {
@@ -123,8 +125,11 @@ export class DashboardContent extends React.Component {
       </React.Fragment>
     );
   }
-
+  useEffect(()=> {
+      axios.get()
+  })
   render() {
+
     const toggle = id => {
       const expanded = this.state.expanded;
       const index = expanded.indexOf(id);
@@ -257,5 +262,92 @@ export class DashboardContent extends React.Component {
         </DataList>
       </React.Fragment>
     );
+  }
+}*/
+
+import { Button, DataList, DataListAction, DataListCell, DataListContent, DataListItem, DataListItemCells, DataListItemRow, DataListToggle } from "@patternfly/react-core";
+import { CodeBranchIcon, ExclamationTriangleIcon } from "@patternfly/react-icons";
+import axios from "axios";
+import React from "react";
+import { useEffect, useState } from "react";
+
+export class DashboardContent extends React.Component {
+  constructor(props) {
+      super(props);
+
+      this.state = {
+          codeCoverageInformation: [],
+          githubRepoInformation: [],
+          expanded: [],
+      };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+  async componentDidMount() {
+      // GET request using axios with async/await
+      const gitHubRepositories = await axios.get("https://api.github.com/orgs/redhat-appstudio/repos");
+      this.setState({githubRepoInformation: gitHubRepositories.data})
+  }
+
+  render() {
+    const toggle = id => {
+      const expanded = this.state.expanded;
+      const index = expanded.indexOf(id);
+      const newExpanded =
+        index >= 0 ? [...expanded.slice(0, index), ...expanded.slice(index + 1, expanded.length)] : [...expanded, id];
+      this.setState(() => ({ expanded: newExpanded }));
+    };
+    const {githubRepoInformation} = this.state
+
+  return (
+    <React.Fragment>
+      <br />
+      <br />
+        <DataList aria-label="Expandable data list example">
+          {githubRepoInformation.map((_repo)=> 
+                    <DataListItem key={_repo.name} aria-labelledby="ex-item1" isExpanded={this.state.expanded.includes(_repo.name)}>
+                      <DataListItemRow>
+                        <DataListToggle
+                          onClick={() => toggle(_repo.name)}
+                          isExpanded={this.state.expanded.includes(_repo.name)}
+                          id="ex-toggle1"
+                          aria-controls="ex-expand1"
+                        />
+                        <DataListItemCells
+                          dataListCells={[
+                            <DataListCell isIcon key="icon">
+                              <CodeBranchIcon />
+                            </DataListCell>,
+                            <DataListCell key="primary content">
+                              <div id="ex-item1">{_repo.name}</div>
+                              <span>{_repo.description}</span>
+                            </DataListCell>,
+                          ]}
+                        />
+                        <DataListAction
+                          aria-labelledby="ex-item1 ex-action1"
+                          id="ex-action1"
+                          aria-label="Actions"
+                          isPlainButtonAction
+                        >
+                          <Button
+                          onClick={() => toggle(_repo.name)}                
+                          id="ex-toggle1"
+                          aria-controls="ex-expand1"
+                          variant="link"
+                        >View Details</Button>
+                        </DataListAction>
+                      </DataListItemRow>
+                      <DataListContent
+                        aria-label="Primary Content Details"
+                        id="ex-expand1"
+                        isHidden={!this.state.expanded.includes(_repo.name)}
+                      >
+                      </DataListContent>
+                    </DataListItem>          
+          )}
+          </DataList>
+    </React.Fragment>
+  )
   }
 }
