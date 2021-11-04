@@ -495,22 +495,11 @@ export class Dashboard extends React.Component {
             opacity: '0.9'
           }} variant={PageSectionVariants.light}>
             <TextContent style={{color: "white"}}>
-              <Text component="h1">Red Hat App Studio</Text>
-              <Text component="p">This is a demo that show app studio metrics.</Text>
+              <Text component="h1">Red Hat App Studio Quality Dashboard</Text>
+              <Text component="p">This is a demo that show app studio quality status.</Text>
             </TextContent>
           </PageSection>
           <DashboardContent />
-          <PageSection isFilled={false} sticky="bottom" padding={{ default: 'noPadding' }} variant="light">
-            <Pagination
-              itemCount={this.state.totalItemCount}
-              page={page}
-              page={this.state.page}
-              perPage={this.state.perPage}
-              onPerPageSelect={this.onPerPageSelect}
-              onSetPage={this.onSetPage}
-              variant="bottom"
-            />
-          </PageSection>
       </React.Fragment>
     );
   }

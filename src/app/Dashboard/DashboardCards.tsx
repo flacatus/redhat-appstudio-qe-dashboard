@@ -167,43 +167,6 @@ const DashboardCards: React.FunctionComponent = () => {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const DashboardCards2: React.FunctionComponent = () => {
-  const renderContent = (content, layout) => {
-    if (layout === 'icon') {
-      return content[0].icon;
-    }
-    if (layout === 'multiIcon') {
-      return (
-        <Flex display={{ default: 'inlineFlex' }}>
-          {content.map(({ icon, count }, index: number) => (
-            <React.Fragment key={index}>
-              <Flex spaceItems={{ default: 'spaceItemsSm' }}>
-                <FlexItem>{icon}</FlexItem>
-                <FlexItem>
-                  <span>{count}</span>
-                </FlexItem>
-              </Flex>
-              {content.length > 1 && index === 0 && <Divider key={`${index}_d`} isVertical />}
-            </React.Fragment>
-          ))}
-        </Flex> 
-      );
-    }
-    if (layout === 'withSubtitle') {
-      return (
-        <Flex justifyContent={{ default: 'justifyContentSpaceAround' }}>
-          {content.map(({ icon, status, subtitle }, index) => (
-            <Flex key={index}>
-              <FlexItem>{icon}</FlexItem>
-              <Stack style = {{alignContent : "left"}}>
-                <span>{status}</span>
-                <span>{subtitle}</span>
-              </Stack>
-            </Flex>
-          ))}
-        </Flex>
-      );
-    }
-  };
   return (
     <Grid hasGutter>
       {Object.keys(cardData).map((cardGroup, groupIndex) => {

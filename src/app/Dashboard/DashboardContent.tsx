@@ -1,353 +1,108 @@
-/*import React from 'react';
-import {
-  Button,
-  DataList,
-  DataListItem,
-  DataListItemRow,
-  DataListCell,
-  DataListAction,
-  DataListToggle,
-  DataListContent,
-  DataListItemCells,
-  Dropdown,
-  DropdownItem,
-  DropdownPosition,
-  KebabToggle,
-  Toolbar,
-  ToolbarGroup,
-  ToolbarItem,
-  ToolbarExpandIconWrapper,
-  ToolbarContent,
-  InputGroup,
-  TextInput,
-  ButtonVariant,
-  Alert,
-  Tooltip
-} from '@patternfly/react-core';
-import { useEffect, useMemo, useState } from 'react';
-import CodeBranchIcon from '@patternfly/react-icons/dist/esm/icons/code-branch-icon';
-import AngleRightIcon from '@patternfly/react-icons/dist/esm/icons/angle-right-icon';
-import SearchIcon from '@patternfly/react-icons/dist/esm/icons/search-icon';
-import {DashboardCards, DashboardCards2} from './DashboardCards';
+import React from 'react';
+import { Tabs, Tab, TabTitleText, TabTitleIcon, GridItem, Gallery, CardTitle, Card, CardBody, DataListItem, DataListContent, Button, DataListAction, DataListItemRow, DataListToggle, DataListItemCells, DataListCell, DataList, Title, DescriptionList, DescriptionListGroup, DescriptionListTerm, DescriptionListTerm, DescriptionListDescription, CardFooter, Divider, Grid } from '@patternfly/react-core';
+import UsersIcon from '@patternfly/react-icons/dist/esm/icons/users-icon';
+import BoxIcon from '@patternfly/react-icons/dist/esm/icons/box-icon';
+import DatabaseIcon from '@patternfly/react-icons/dist/esm/icons/database-icon';
+import ServerIcon from '@patternfly/react-icons/dist/esm/icons/server-icon';
+import LaptopIcon from '@patternfly/react-icons/dist/esm/icons/laptop-icon';
+import { PropertiesSidePanel, PropertyItem } from '@patternfly/react-catalog-view-extension';
+
+import { CodeBranchIcon, DockerIcon, ExternalLinkAltIcon, GitAltIconConfig, GithubAltIcon, GitIcon, GlobeIcon, OkIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import axios from 'axios';
 
 export class DashboardContent extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      activeTabKey: 0,
+      codeCoverageInformation: [],
+      githubRepoInformation: [],
       expanded: [],
-      isOpen1: false,
-      isOpen2: false,
-      isOpen3: false,
-      allExpanded: false
     };
-
-    this.onToggleAll = () => {
-      this.setState(
-        {
-          allExpanded: !this.state.allExpanded
-        },
-        () => {
-          if (this.state.allExpanded) {
-            this.setState({
-              expanded: ['ex-toggle1', 'ex-toggle2', 'ex-toggle3']
-            });
-          } else {
-            this.setState({
-              expanded: []
-            });
-          }
-        }
-      );
-    };
-
-    this.onToggle1 = isOpen1 => {
-      this.setState({ isOpen1 });
-    };
-
-    this.onToggle2 = isOpen2 => {
-      this.setState({ isOpen2 });
-    };
-
-    this.onToggle3 = isOpen3 => {
-      this.setState({ isOpen3 });
-    };
-
-    this.onSelect1 = event => {
-      this.setState(prevState => ({
-        isOpen1: !prevState.isOpen1
-      }));
-    };
-
-    this.onSelect2 = event => {
-      this.setState(prevState => ({
-        isOpen2: !prevState.isOpen2
-      }));
-    };
-
-    this.onSelect3 = event => {
-      this.setState(prevState => ({
-        isOpen3: !prevState.isOpen3
-      }));
+    // Toggle currently active tab
+    this.handleTabClick = (_event, tabIndex) => {
+      this.setState({
+        activeTabKey: tabIndex,
+      });
     };
   }
-
-  renderToolbar() {
-    return (
-      <React.Fragment>
-        <Toolbar>
-          <ToolbarContent>
-            <ToolbarGroup>
-              <ToolbarItem variant="expand-all" isAllExpanded={this.state.allExpanded}>
-                <Tooltip
-                  position="right"
-                  content={
-                    <div>
-                      {this.state.allExpanded && 'Collapse all rows'}
-                      {!this.state.allExpanded && 'Expand all rows'}
-                    </div>
-                  }
-                >
-                  <Button
-                    onClick={this.onToggleAll}
-                    variant="plain"
-                    aria-label={this.state.allExpanded ? 'Collapse all rows' : 'Expand all rows'}
-                  >
-                    <ToolbarExpandIconWrapper>
-                      <AngleRightIcon />
-                    </ToolbarExpandIconWrapper>
-                  </Button>
-                </Tooltip>
-              </ToolbarItem>
-            </ToolbarGroup>
-          </ToolbarContent>
-        </Toolbar>
-      </React.Fragment>
-    );
-  }
-  useEffect(()=> {
-      axios.get()
-  })
-  render() {
-
-    const toggle = id => {
-      const expanded = this.state.expanded;
-      const index = expanded.indexOf(id);
-      const newExpanded =
-        index >= 0 ? [...expanded.slice(0, index), ...expanded.slice(index + 1, expanded.length)] : [...expanded, id];
-      this.setState(() => ({ expanded: newExpanded }));
-      if (newExpanded.length === 3) {
-        this.setState(() => ({ allExpanded: true }));
-      } else if (newExpanded.length === 0) {
-        this.setState(() => ({ allExpanded: false }));
-      }
-    };
-
-    return (
-      <React.Fragment>
-        <br />
-        <br />
-        <DataList aria-label="Expandable data list example">
-          <DataListItem aria-labelledby="ex-item1" isExpanded={this.state.expanded.includes('ex-toggle1')}>
-            <DataListItemRow>
-              <DataListToggle
-                onClick={() => toggle('ex-toggle1')}
-                isExpanded={this.state.expanded.includes('ex-toggle1')}
-                id="ex-toggle1"
-                aria-controls="ex-expand1"
-              />
-              <DataListItemCells
-                dataListCells={[
-                  <DataListCell isIcon key="icon">
-                    <CodeBranchIcon />
-                  </DataListCell>,
-                  <DataListCell key="primary content">
-                    <div id="ex-item1">application-service</div>
-                    <span>A Kubernetes controller/operator that is manages service provider integration tasks.</span>
-                  </DataListCell>,
-                ]}
-              />
-              <DataListAction
-                aria-labelledby="ex-item1 ex-action1"
-                id="ex-action1"
-                aria-label="Actions"
-                isPlainButtonAction
-              >
-                <Button
-                onClick={() => toggle('ex-toggle1')}                
-                id="ex-toggle1"
-                aria-controls="ex-expand1"
-                variant="link"
-              >View Details</Button>
-              </DataListAction>
-            </DataListItemRow>
-            <DataListContent
-              aria-label="Primary Content Details"
-              id="ex-expand1"
-              isHidden={!this.state.expanded.includes('ex-toggle1')}
-            >
-              <DashboardCards></DashboardCards>
-            </DataListContent>
-          </DataListItem>
-          <DataListItem aria-labelledby="ex-item1" isExpanded={this.state.expanded.includes('ex-toggle2')}>
-            <DataListItemRow>
-              <DataListToggle
-                onClick={() => toggle('ex-toggle2')}
-                isExpanded={this.state.expanded.includes('ex-toggle2')}
-                id="ex-toggle1"
-                aria-controls="ex-expand1"
-              />
-              <DataListItemCells
-                dataListCells={[
-                  <DataListCell isIcon key="icon">
-                    <CodeBranchIcon />
-                  </DataListCell>,
-                  <DataListCell key="primary content">
-                    <div id="ex-item1">service-provider-integration-api</div>
-                    <span>Managing access to the third-party service providers API</span>
-                  </DataListCell>,
-                ]}
-              />
-              <DataListAction
-                aria-labelledby="ex-item1 ex-action1"
-                id="ex-action1"
-                aria-label="Actions"
-                isPlainButtonAction
-              >
-                <Button
-                onClick={() => toggle('ex-toggle2')}                
-                id="ex-toggle1"
-                aria-controls="ex-expand1"
-                variant="link"
-              >View Details</Button>
-              </DataListAction>
-            </DataListItemRow>
-            <DataListContent
-              aria-label="Primary Content Details"
-              id="ex-expand1"
-              isHidden={!this.state.expanded.includes('ex-toggle2')}
-            >
-              <DashboardCards2></DashboardCards2>
-            </DataListContent>
-          </DataListItem>
-          <DataListItem aria-labelledby="ex-item3" isExpanded={this.state.expanded.includes('ex-toggle3')}>
-            <DataListItemRow>
-              <DataListToggle
-                onClick={() => toggle('ex-toggle3')}
-                isExpanded={this.state.expanded.includes('ex-toggle3')}
-                id="ex-toggle3"
-                aria-controls="ex-expand3"
-              />
-              <DataListItemCells
-                dataListCells={[
-                  <DataListCell isIcon key="icon">
-                    <CodeBranchIcon />
-                  </DataListCell>,
-                  <DataListCell key="tertiary content">
-                    <div id="ex-item3">managed-gitops</div>
-                    <span>GitOps Service PoC: Frontend/backend/cluster-agent components aiming to provided GitOps services via Kubernetes-controller-managed Argo CD</span>
-                  </DataListCell>,
-                ]}
-              />
-            </DataListItemRow>
-            <DataListContent
-              aria-label="Primary Content Details"
-              id="ex-expand3"
-              isHidden={!this.state.expanded.includes('ex-toggle3')}
-              hasNoPadding
-            >
-              This expanded section has no padding.
-            </DataListContent>
-          </DataListItem>
-        </DataList>
-      </React.Fragment>
-    );
-  }
-}*/
-
-import { Button, DataList, DataListAction, DataListCell, DataListContent, DataListItem, DataListItemCells, DataListItemRow, DataListToggle } from "@patternfly/react-core";
-import { CodeBranchIcon, ExclamationTriangleIcon } from "@patternfly/react-icons";
-import axios from "axios";
-import React from "react";
-import { useEffect, useState } from "react";
-
-export class DashboardContent extends React.Component {
-  constructor(props) {
-      super(props);
-
-      this.state = {
-          codeCoverageInformation: [],
-          githubRepoInformation: [],
-          expanded: [],
-      };
-  }
-
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async componentDidMount() {
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+    async componentDidMount() {
       // GET request using axios with async/await
       const gitHubRepositories = await axios.get("https://api.github.com/orgs/redhat-appstudio/repos");
       this.setState({githubRepoInformation: gitHubRepositories.data})
+      const codeCovRepositories = await axios.get("https://codecov.io/api/gh/redhat-appstudio");
+      this.setState({codeCoverageInformation: codeCovRepositories.data.repos})
   }
 
-  render() {
-    const toggle = id => {
+    mountToggle (id) {
       const expanded = this.state.expanded;
       const index = expanded.indexOf(id);
       const newExpanded =
         index >= 0 ? [...expanded.slice(0, index), ...expanded.slice(index + 1, expanded.length)] : [...expanded, id];
       this.setState(() => ({ expanded: newExpanded }));
-    };
-    const {githubRepoInformation} = this.state
+    }
 
-  return (
-    <React.Fragment>
-      <br />
-      <br />
-        <DataList aria-label="Expandable data list example">
-          {githubRepoInformation.map((_repo)=> 
-                    <DataListItem key={_repo.name} aria-labelledby="ex-item1" isExpanded={this.state.expanded.includes(_repo.name)}>
-                      <DataListItemRow>
-                        <DataListToggle
-                          onClick={() => toggle(_repo.name)}
-                          isExpanded={this.state.expanded.includes(_repo.name)}
-                          id="ex-toggle1"
-                          aria-controls="ex-expand1"
-                        />
-                        <DataListItemCells
-                          dataListCells={[
-                            <DataListCell isIcon key="icon">
-                              <CodeBranchIcon />
-                            </DataListCell>,
-                            <DataListCell key="primary content">
-                              <div id="ex-item1">{_repo.name}</div>
-                              <span>{_repo.description}</span>
-                            </DataListCell>,
-                          ]}
-                        />
-                        <DataListAction
-                          aria-labelledby="ex-item1 ex-action1"
-                          id="ex-action1"
-                          aria-label="Actions"
-                          isPlainButtonAction
-                        >
-                          <Button
-                          onClick={() => toggle(_repo.name)}                
-                          id="ex-toggle1"
-                          aria-controls="ex-expand1"
-                          variant="link"
-                        >View Details</Button>
-                        </DataListAction>
-                      </DataListItemRow>
-                      <DataListContent
-                        aria-label="Primary Content Details"
-                        id="ex-expand1"
-                        isHidden={!this.state.expanded.includes(_repo.name)}
-                      >
-                      </DataListContent>
-                    </DataListItem>          
-          )}
-          </DataList>
-    </React.Fragment>
-  )
-  }
+    getCoverage(repoName) {
+      const { codeCoverageInformation } = this.state
+
+      const repo = codeCoverageInformation.find((repo)=> repo.name === repoName)
+      if (repo) {
+        return repo.coverage
+      }
+      return null
+    }
+
+    render() {
+      const { githubRepoInformation, codeCoverageInformation } = this.state
+      return (
+        <Grid>
+            <br />
+            <Gallery hasGutter style={{'--pf-l-gallery--GridTemplateColumns--min': '460px', marginLeft: "0.5%", marginRight: "0.5%" }}>
+              {githubRepoInformation.map((repository, i) =>
+                  <Card style={{display: "flex"}} key = {i}>
+                    <CardTitle>
+                      <Title headingLevel="h3" size="xl" style={{textAlign : "center"}}>
+                        {repository.name}
+                      </Title>
+                    </CardTitle>
+                    <CardBody>
+                      <br />
+                      <DescriptionList columnModifier={{ lg: '2Col' }}>
+                        <DescriptionListGroup>
+                          <DescriptionListTerm>Language</DescriptionListTerm>
+                          <DescriptionListDescription>{repository.language === null ? "Multiple Languages" : repository.language}</DescriptionListDescription>
+                        </DescriptionListGroup>
+                        <DescriptionListGroup>
+                          <DescriptionListTerm>Descirption</DescriptionListTerm>
+                          <DescriptionListDescription>{repository.description === null ? "Description not provided" : repository.description}</DescriptionListDescription>
+                        </DescriptionListGroup>
+                        <DescriptionListGroup>
+                          <DescriptionListTerm>Coverage</DescriptionListTerm>
+                          <DescriptionListDescription>
+                            <a href="#">{this.getCoverage(repository.name) === null ? "Uncovered" : `${this.getCoverage(repository.name)}%`}</a>
+                          </DescriptionListDescription>
+                        </DescriptionListGroup>
+                        <DescriptionListGroup>
+                          <DescriptionListTerm>Build Status</DescriptionListTerm>
+                          <DescriptionListDescription>
+                            <a href="#">Unknown</a>
+                          </DescriptionListDescription>
+                        </DescriptionListGroup>
+                        <DescriptionListGroup>
+                          <DescriptionListTerm>Git Url</DescriptionListTerm>
+                          <DescriptionListDescription>
+                            <a href={repository.html_url}>{repository.html_url}</a>
+                          </DescriptionListDescription>
+                        </DescriptionListGroup>
+                      </DescriptionList>
+                    </CardBody>
+                  </Card>
+                )
+              }
+              </Gallery>
+            <br />
+        </Grid>
+      );
+    }
 }

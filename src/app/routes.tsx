@@ -33,7 +33,7 @@ const routes: AppRouteConfig[] = [
   {
     component: Dashboard,
     exact: true,
-    label: 'Dashboard',
+    label: 'Overview',
     path: '/',
     title: 'AppStudio Quality metrics',
   },
@@ -41,7 +41,7 @@ const routes: AppRouteConfig[] = [
     component: Support,
     exact: true,
     isAsync: true,
-    label: 'Support',
+    label: 'Reports',
     path: '/support',
     title: 'PatternFly Seed | Support Page',
   },

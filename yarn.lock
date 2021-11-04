@@ -1544,7 +1544,21 @@
     mkdirp "^1.0.4"
     rimraf "^3.0.2"
 
-"@patternfly/react-core@^4.162.3":
+"@patternfly/patternfly@4.151.4":
+  version "4.151.4"
+  resolved "https://registry.yarnpkg.com/@patternfly/patternfly/-/patternfly-4.151.4.tgz#c0cfe04ec4572f6d45c2c2b0c1e7a4f0026bdc24"
+  integrity sha512-TsXePErYetJ8eGkttczkiRBpQH8wAa5bS9aJ8ScFxRvpOw4LfivZ3AKBaQxgONWS6muUN1SxbaGF8qWuRMGo5Q==
+
+"@patternfly/react-catalog-view-extension@^4.19.8":
+  version "4.19.8"
+  resolved "https://registry.yarnpkg.com/@patternfly/react-catalog-view-extension/-/react-catalog-view-extension-4.19.8.tgz#aee4eec19fbd4fe9182f065befe22c7816fadb9b"
+  integrity sha512-pfD5MM0/jmSZGc92u0JPvCd6wmVJWKS2k7OQ0X5uSoRK4JI+yEKXSLDH8Ar9fojnvyjoyD9In/0jjWboL7Z3tg==
+  dependencies:
+    "@patternfly/patternfly" "4.151.4"
+    "@patternfly/react-core" "^4.168.8"
+    "@patternfly/react-styles" "^4.18.8"
+
+"@patternfly/react-core@^4.162.3", "@patternfly/react-core@^4.168.8":
   version "4.168.8"
   resolved "https://registry.yarnpkg.com/@patternfly/react-core/-/react-core-4.168.8.tgz#6f200dba7bb83423144db34bbd2ffc833b097566"
   integrity sha512-wfG52saibeAXRoBYytzMgVGANoInbPuhUK0y6AynVp3/QKAPCKHpaI4nCh9ytNZ+UjiT2KGOcunhavsOw5+iMA==
