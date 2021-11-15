@@ -1,0 +1,39 @@
+name: 'redhat-appstudio'
+spec:
+  git:
+    - gitOrganization: 'redhat-appstudio'
+      repoName: 'service-provider-integration-operator'
+      jobs:
+        actions:
+          monitor: true
+        openshiftCI:
+          monitor: true
+      artifacts:
+        - containerName: 'controller:next'
+          containerUrl : 'quay.io/flacatus/pene:next'
+      coverage:
+        monitor: true
+    - gitOrganization: 'redhat-appstudio'
+      repoName: 'managed-gitops'
+      jobs:
+        actions:
+          monitor: true
+        openshiftCI:
+          monitor: true
+      artifacts:
+        - containerName: 'controller:next'
+          containerUrl : 'quay.io/flacatus/pene:next'
+      coverage:
+        monitor: true
+    - gitOrganization: 'openshift'
+      repoName: 'hac-dev'
+      jobs:
+        actions:
+          monitor: true
+        openshiftCI:
+          monitor: true
+      artifacts:
+        - containerName: 'controller:next'
+          containerUrl : 'quay.io/flacatus/pene:next'
+      coverage:
+        monitor: true
