@@ -1,108 +1,82 @@
 import React from 'react';
-import { Tabs, Tab, TabTitleText, TabTitleIcon, GridItem, Gallery, CardTitle, Card, CardBody, DataListItem, DataListContent, Button, DataListAction, DataListItemRow, DataListToggle, DataListItemCells, DataListCell, DataList, Title, DescriptionList, DescriptionListGroup, DescriptionListTerm, DescriptionListTerm, DescriptionListDescription, CardFooter, Divider, Grid } from '@patternfly/react-core';
-import UsersIcon from '@patternfly/react-icons/dist/esm/icons/users-icon';
-import BoxIcon from '@patternfly/react-icons/dist/esm/icons/box-icon';
-import DatabaseIcon from '@patternfly/react-icons/dist/esm/icons/database-icon';
-import ServerIcon from '@patternfly/react-icons/dist/esm/icons/server-icon';
-import LaptopIcon from '@patternfly/react-icons/dist/esm/icons/laptop-icon';
-import { PropertiesSidePanel, PropertyItem } from '@patternfly/react-catalog-view-extension';
+import { TableComposable, Thead, Tbody, Tr, Th, Td, ExpandableRowContent } from '@patternfly/react-table';
+import CodeBranchIcon from '@patternfly/react-icons/dist/esm/icons/code-branch-icon';
+import CodeIcon from '@patternfly/react-icons/dist/esm/icons/code-icon';
+import CubeIcon from '@patternfly/react-icons/dist/esm/icons/cube-icon';
+import { PageSection } from '@patternfly/react-core';
 
-import { CodeBranchIcon, DockerIcon, ExternalLinkAltIcon, GitAltIconConfig, GithubAltIcon, GitIcon, GlobeIcon, OkIcon, PlusCircleIcon } from '@patternfly/react-icons';
-import axios from 'axios';
-
-export class DashboardContent extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      activeTabKey: 0,
-      codeCoverageInformation: [],
-      githubRepoInformation: [],
-      expanded: [],
-    };
-    // Toggle currently active tab
-    this.handleTabClick = (_event, tabIndex) => {
-      this.setState({
-        activeTabKey: tabIndex,
-      });
-    };
-  }
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-    async componentDidMount() {
-      // GET request using axios with async/await
-      const gitHubRepositories = await axios.get("https://api.github.com/orgs/redhat-appstudio/repos");
-      this.setState({githubRepoInformation: gitHubRepositories.data})
-      const codeCovRepositories = await axios.get("https://codecov.io/api/gh/redhat-appstudio");
-      this.setState({codeCoverageInformation: codeCovRepositories.data.repos})
-  }
-
-    mountToggle (id) {
-      const expanded = this.state.expanded;
-      const index = expanded.indexOf(id);
-      const newExpanded =
-        index >= 0 ? [...expanded.slice(0, index), ...expanded.slice(index + 1, expanded.length)] : [...expanded, id];
-      this.setState(() => ({ expanded: newExpanded }));
-    }
-
-    getCoverage(repoName) {
-      const { codeCoverageInformation } = this.state
-
-      const repo = codeCoverageInformation.find((repo)=> repo.name === repoName)
-      if (repo) {
-        return repo.coverage
-      }
-      return null
-    }
-
-    render() {
-      const { githubRepoInformation, codeCoverageInformation } = this.state
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export function DashboardContent() {
+  const columns = ['Red Hat AppStudio Repositories', 'Coverage', 'Language', 'Build Status', 'Git URL'];
+  const rows = [
+    ['service-provider-integration-api', '0%', 'Java', 'Passed', 'Open in Github'],
+    ['managed-gitops', '0%', 'Go', 'Passed', 'Open in Github'],
+    ['application-service', '0%', 'Go', 'Passed', 'Open in Github'],
+    ['service-provider-integration-operator', '0%', 'Go', 'Passed', 'Open in Github'],
+    ['build-service-operator', '0%', 'Unknown', 'Unknown', 'Open in Github'],
+    ['build-service', '0%', 'Unknown', 'Unknown', 'Open in Github'],
+    ['service-provider-integration', '0%', 'Unknown', 'Unknown', 'Open in Github'],
+  ];
+  // index corresponds to row index, and value corresponds to column index of the expanded, null means no cell is expanded
+  const customRender = (cell, index) => {
+    if (index === 0) {
+      return <a href="https://github.com/redhat-appstudio/application-service">{cell}</a>;
+    } else if (index === 1) {
       return (
-        <Grid>
-            <br />
-            <Gallery hasGutter style={{'--pf-l-gallery--GridTemplateColumns--min': '460px', marginLeft: "0.5%", marginRight: "0.5%" }}>
-              {githubRepoInformation.map((repository, i) =>
-                  <Card style={{display: "flex"}} key = {i}>
-                    <CardTitle>
-                      <Title headingLevel="h3" size="xl" style={{textAlign : "center"}}>
-                        {repository.name}
-                      </Title>
-                    </CardTitle>
-                    <CardBody>
-                      <br />
-                      <DescriptionList columnModifier={{ lg: '2Col' }}>
-                        <DescriptionListGroup>
-                          <DescriptionListTerm>Language</DescriptionListTerm>
-                          <DescriptionListDescription>{repository.language === null ? "Multiple Languages" : repository.language}</DescriptionListDescription>
-                        </DescriptionListGroup>
-                        <DescriptionListGroup>
-                          <DescriptionListTerm>Descirption</DescriptionListTerm>
-                          <DescriptionListDescription>{repository.description === null ? "Description not provided" : repository.description}</DescriptionListDescription>
-                        </DescriptionListGroup>
-                        <DescriptionListGroup>
-                          <DescriptionListTerm>Coverage</DescriptionListTerm>
-                          <DescriptionListDescription>
-                            <a href="#">{this.getCoverage(repository.name) === null ? "Uncovered" : `${this.getCoverage(repository.name)}%`}</a>
-                          </DescriptionListDescription>
-                        </DescriptionListGroup>
-                        <DescriptionListGroup>
-                          <DescriptionListTerm>Build Status</DescriptionListTerm>
-                          <DescriptionListDescription>
-                            <a href="#">Unknown</a>
-                          </DescriptionListDescription>
-                        </DescriptionListGroup>
-                        <DescriptionListGroup>
-                          <DescriptionListTerm>Git Url</DescriptionListTerm>
-                          <DescriptionListDescription>
-                            <a href={repository.html_url}>{repository.html_url}</a>
-                          </DescriptionListDescription>
-                        </DescriptionListGroup>
-                      </DescriptionList>
-                    </CardBody>
-                  </Card>
-                )
-              }
-              </Gallery>
-            <br />
-        </Grid>
+        <React.Fragment>
+          <CodeBranchIcon key="icon" /> {cell}
+        </React.Fragment>
       );
+    } else if (index === 2) {
+      return (
+        <React.Fragment>
+          <CodeIcon key="icon" /> {cell}
+        </React.Fragment>
+      );
+    } else if (index === 3) {
+      return (
+        <React.Fragment>
+          <CubeIcon key="icon" /> {cell}
+        </React.Fragment>
+      );
+    } else if (index === 4) {
+      return <a href="https://github.com/redhat-appstudio/application-service">{cell}</a>;
     }
+    return cell;
+  };
+
+  return (
+    <PageSection >
+      <TableComposable style={{backgroundColor: "#FAFAFA"}} color="#F5F5F5" content="wrap" aria-label="Compound expandable table">
+        <Thead>
+          <Tr>
+            {columns.map((column, columnIndex) => (
+              <Th key={columnIndex}>{column}</Th>
+            ))}
+          </Tr>
+        </Thead>
+        {rows.map((row, rowIndex) => {
+          return (
+            <Tbody key={rowIndex}>
+              <React.Fragment>
+                <Tr>
+                  {row.map((cell, cellIndex) => {
+                    return (
+                      <Td
+                        key={`${rowIndex}_${cellIndex}`}
+                        dataLabel={columns[cellIndex]}
+                        component={cellIndex === 0 ? 'th' : 'td'}
+                      >
+                        {customRender(cell, cellIndex)}
+                      </Td>
+                    );
+                  })}
+                </Tr>
+              </React.Fragment>
+            </Tbody>
+          );
+        })}
+      </TableComposable>
+    </PageSection>
+  );
 }

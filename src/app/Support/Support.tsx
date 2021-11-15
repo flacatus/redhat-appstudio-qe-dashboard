@@ -24,8 +24,7 @@ let Support: React.FunctionComponent<ISupportProps> = () => (
         Empty State (Stub Support Module)
         </Title>
       <EmptyStateBody>
-        This represents an the empty state pattern in Patternfly 4. Hopefully it&apos;s simple enough to use but flexible
-        enough to meet a variety of needs.
+        Empty state. Here will come some tests reports statistics
         </EmptyStateBody>
       <Button variant="primary">Primary Action</Button>
       <EmptyStateSecondaryActions>
