@@ -3,7 +3,7 @@ export interface StateContext {
     APIData: [];
     error: string;
     alerts: [];
-    vesrion: string;
+    version: string;
 }
 
 const Reducer = (state, action) => {
@@ -16,7 +16,7 @@ const Reducer = (state, action) => {
         case 'SET_Version':
             return {
                 ...state,
-                vesrion: action.data
+                version: action.data
             };
         case 'SET_ERROR':
             return {
