@@ -52,7 +52,6 @@ func main() {
 	hostname, _ := os.Hostname()
 	viper.Set("hostname", hostname)
 	viper.Set("version", version.VERSION)
-	viper.Set("revision", version.REVISION)
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
 

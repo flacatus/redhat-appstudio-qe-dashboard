@@ -68,18 +68,18 @@ func NewServer(config *Config, logger *zap.Logger) (*Server, error) {
 }
 
 func (s *Server) registerHandlers() {
-	s.router.HandleFunc("/version", s.versionHandler).Methods("GET")
-	s.router.HandleFunc("/quality/repositories", s.repositoriesHandler).Methods("GET")
-	s.router.PathPrefix("/swagger/").Handler(httpSwagger.Handler(
-		httpSwagger.URL("/swagger/doc.json"),
+	s.router.HandleFunc("/api/version", s.versionHandler).Methods("GET")
+	s.router.HandleFunc("/api/quality/repositories", s.repositoriesHandler).Methods("GET")
+	s.router.PathPrefix("/api/swagger/").Handler(httpSwagger.Handler(
+		httpSwagger.URL("/api/swagger/doc.json"),
 	))
-	s.router.PathPrefix("/swagger/").Handler(httpSwagger.Handler(
-		httpSwagger.URL("/swagger/doc.json"),
+	s.router.PathPrefix("/api/swagger/").Handler(httpSwagger.Handler(
+		httpSwagger.URL("/api/swagger/doc.json"),
 	))
-	s.router.HandleFunc("/swagger.json", func(w http.ResponseWriter, r *http.Request) {
+	s.router.HandleFunc("/api/swagger.json", func(w http.ResponseWriter, r *http.Request) {
 		doc, err := swag.ReadDoc()
 		if err != nil {
-			s.logger.Error("swagger error", zap.Error(err), zap.String("path", "/swagger.json"))
+			s.logger.Error("swagger error", zap.Error(err), zap.String("path", "/api/swagger.json"))
 		}
 		w.Write([]byte(doc))
 	})

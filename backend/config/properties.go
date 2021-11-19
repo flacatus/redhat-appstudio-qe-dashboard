@@ -14,18 +14,18 @@ type ConfigContext struct {
 
 // Comment
 func GetServerConfiguration(configFile string) (cliContext *ConfigContext, e error) {
-	cliInstance, err := readBackendConfiguration(configFile)
+	configInstance, err := readBackendConfiguration(configFile)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ConfigContext{
-		ConfigSpec: cliInstance,
+		ConfigSpec: configInstance,
 	}, nil
 }
 
 // Comment
-func readBackendConfiguration(configFile string) (instance *ConfigSpec, e error) {
+func readBackendConfiguration(configFile string) (configInstance *ConfigSpec, e error) {
 	c := &ConfigSpec{}
 	yamlFileContent, err := ioutil.ReadFile(configFile)
 	if err != nil {

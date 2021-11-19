@@ -32,7 +32,7 @@ func (s *Server) startUpdateCache(ctx context.Context, strategy rotationStrategy
 			select {
 			case <-ctx.Done():
 				return
-			case <-time.After(time.Second * 30):
+			case <-time.After(strategy.rotationFrequency):
 				if err := s.rotate(); err != nil {
 					s.logger.Sugar().Infof("failed to update cache: %v", err)
 				}

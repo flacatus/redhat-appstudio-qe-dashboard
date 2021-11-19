@@ -13,8 +13,8 @@ spec:
           containerUrl : 'quay.io/flacatus/pene:next'
       coverage:
         monitor: true
-    - gitOrganization: 'redhat-appstudio'
-      repoName: 'managed-gitops'
+    - gitOrganization: 'che-incubator'
+      repoName: 'chectl'
       jobs:
         actions:
           monitor: true
@@ -25,8 +25,20 @@ spec:
           containerUrl : 'quay.io/flacatus/pene:next'
       coverage:
         monitor: true
-    - gitOrganization: 'openshift'
-      repoName: 'hac-dev'
+    - gitOrganization: 'openshift-pipelines'
+      repoName: 'pipelines-as-code'
+      jobs:
+        actions:
+          monitor: true
+        openshiftCI:
+          monitor: true
+      artifacts:
+        - containerName: 'controller:next'
+          containerUrl : 'quay.io/flacatus/pene:next'
+      coverage:
+        monitor: true
+    - gitOrganization: 'eclipse-che'
+      repoName: 'che-machine-exec'
       jobs:
         actions:
           monitor: true

@@ -5,6 +5,7 @@ const { stylePaths } = require("./stylePaths");
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const TerserJSPlugin = require('terser-webpack-plugin');
+const Dotenv = require('dotenv-webpack');
 
 module.exports = merge(common('production'), {
   mode: 'production',
@@ -20,6 +21,11 @@ module.exports = merge(common('production'), {
     ],
   },
   plugins: [
+    new Dotenv({
+      systemvars: true, // load all the predefined 'process.env' variables which will trump anything local per dotenv specs.
+      silent: true, // hide any errors
+
+    }),
     new MiniCssExtractPlugin({
       filename: '[name].css',
       chunkFilename: '[name].bundle.css'
