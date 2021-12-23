@@ -10,42 +10,6 @@ spec:
           monitor: true
       artifacts:
         - containerName: 'controller:next'
-          containerUrl : 'quay.io/flacatus/pene:next'
-      coverage:
-        monitor: true
-    - gitOrganization: 'che-incubator'
-      repoName: 'chectl'
-      jobs:
-        actions:
-          monitor: true
-        openshiftCI:
-          monitor: true
-      artifacts:
-        - containerName: 'controller:next'
-          containerUrl : 'quay.io/flacatus/pene:next'
-      coverage:
-        monitor: true
-    - gitOrganization: 'openshift-pipelines'
-      repoName: 'pipelines-as-code'
-      jobs:
-        actions:
-          monitor: true
-        openshiftCI:
-          monitor: true
-      artifacts:
-        - containerName: 'controller:next'
-          containerUrl : 'quay.io/flacatus/pene:next'
-      coverage:
-        monitor: true
-    - gitOrganization: 'eclipse-che'
-      repoName: 'che-machine-exec'
-      jobs:
-        actions:
-          monitor: true
-        openshiftCI:
-          monitor: true
-      artifacts:
-        - containerName: 'controller:next'
-          containerUrl : 'quay.io/flacatus/pene:next'
+          containerUrl : 'quay.io/example/example:next'
       coverage:
         monitor: true

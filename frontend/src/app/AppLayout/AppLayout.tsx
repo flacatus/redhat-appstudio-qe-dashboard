@@ -34,7 +34,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   function LogoImg() {
     const history = useHistory();
     function handleClick() {
-      history.push('/');
+      history.push('/home/overview');
     }
     return (
       <img onClick={handleClick} style={{height: '32px'}}  src={logo} alt="Red Hat logo" />

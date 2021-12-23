@@ -16,7 +16,7 @@ info:
   title: Quality Backend API
   version: "2.0"
 paths:
-  /quality/repositories:
+  /api/quality/repositories:
     get:
       description: returns all repository information founded in server configuration
       produces:
@@ -27,9 +27,9 @@ paths:
       summary: Quality Repositories
       tags:
       - HTTP API
-  /version:
+  /api/version:
     get:
-      description: returns quality backend version and git commit hash
+      description: returns quality backend version
       produces:
       - application/json
       responses:

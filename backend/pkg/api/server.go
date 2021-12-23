@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/dgraph-io/ristretto"
+	"github.com/flacatus/qe-dashboard-backend/config"
 	_ "github.com/flacatus/qe-dashboard-backend/pkg/api/docs"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
@@ -70,6 +71,7 @@ func NewServer(config *Config, logger *zap.Logger) (*Server, error) {
 func (s *Server) registerHandlers() {
 	s.router.HandleFunc("/api/version", s.versionHandler).Methods("GET")
 	s.router.HandleFunc("/api/quality/repositories", s.repositoriesHandler).Methods("GET")
+	s.router.HandleFunc("/api/quality/repositories/create", s.repositoriesCreateHandler).Methods("POST")
 	s.router.PathPrefix("/api/swagger/").Handler(httpSwagger.Handler(
 		httpSwagger.URL("/api/swagger/doc.json"),
 	))
@@ -89,24 +91,28 @@ func (s *Server) registerMiddlewares() {
 	httpLogger := NewLoggingMiddleware(s.logger)
 	s.router.Use(httpLogger.Handler)
 	s.router.Use(versionMiddleware)
-	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"*"},
-		AllowCredentials: true,
-		// Enable Debugging for testing, consider disabling in production
-		Debug: true,
-	})
-	s.router.Use(c.Handler)
 }
 
 func (s *Server) ListenAndServe(stopCh <-chan struct{}) {
 	s.registerHandlers()
 	s.registerMiddlewares()
 
+	c := cors.New(cors.Options{
+		AllowedOrigins:   make([]string, 0),
+		AllowCredentials: true,
+		// Enable Debugging for testing, consider disabling in production
+		Debug: true,
+	})
 	if s.config.H2C {
 		s.handler = h2c.NewHandler(s.router, &http2.Server{})
 	} else {
-		s.handler = s.router
+		//cors.Default().Handler(s.router)
+		s.handler = c.Handler(s.router)
 	}
+
+	cfg := config.GetServerConfiguration()
+
+	s.cache.Set("config", cfg.ConfigSpec, 1)
 
 	str := staticRotationStrategy()
 	s.startUpdateCache(context.TODO(), str, time.Now)

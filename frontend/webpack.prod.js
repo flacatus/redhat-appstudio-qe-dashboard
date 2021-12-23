@@ -24,7 +24,6 @@ module.exports = merge(common('production'), {
     new Dotenv({
       systemvars: true, // load all the predefined 'process.env' variables which will trump anything local per dotenv specs.
       silent: true, // hide any errors
-
     }),
     new MiniCssExtractPlugin({
       filename: '[name].css',

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Route, RouteComponentProps, Switch } from 'react-router-dom';
+import { Redirect, Route, RouteComponentProps, Switch } from 'react-router-dom';
 import { accessibleRouteChangeHandler } from '@app/utils/utils';
 import { Dashboard } from '@app/Dashboard/Dashboard';
 import { Support } from '@app/Support/Support';
@@ -8,6 +8,7 @@ import { ProfileSettings } from '@app/Settings/Profile/ProfileSettings';
 import { NotFound } from '@app/NotFound/NotFound';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import { LastLocationProvider, useLastLocation } from 'react-router-last-location';
+import { Repositories } from './Repositories/Repositories';
 
 let routeFocusTimer: number;
 export interface IAppRoute {
@@ -31,11 +32,23 @@ export type AppRouteConfig = IAppRoute | IAppRouteGroup;
 
 const routes: AppRouteConfig[] = [
   {
-    component: Dashboard,
-    exact: true,
-    label: 'Overview',
-    path: '/',
-    title: 'AppStudio Quality metrics',
+    label: 'Home',
+    routes: [
+      {
+        component: Dashboard,
+        exact: true,
+        label: 'Overview',
+        path: '/home/overview',
+        title: 'Quality Dashboard | Overview',
+      },
+      {
+        component: Repositories,
+        exact: true,
+        label: 'Repositories',
+        path: '/home/repositories',
+        title: 'Quality Dashboard | Repositories',
+      },
+    ],
   },
   {
     component: Support,
@@ -92,11 +105,6 @@ const RouteWithTitleUpdates = ({ component: Component, isAsync = false, title, .
   return <Route render={routeWithTitle} {...rest}/>;
 };
 
-const PageNotFound = ({ title }: { title: string }) => {
-  useDocumentTitle(title);
-  return <Route component={NotFound} />;
-};
-
 const flattenedRoutes: IAppRoute[] = routes.reduce(
   (flattened, route) => [...flattened, ...(route.routes ? route.routes : [route])],
   [] as IAppRoute[]
@@ -115,7 +123,7 @@ const AppRoutes = (): React.ReactElement => (
           isAsync={isAsync}
         />
       ))}
-      <PageNotFound title="404 Page Not Found" />
+      <Redirect to='/home/overview'  />
     </Switch>
   </LastLocationProvider>
 );

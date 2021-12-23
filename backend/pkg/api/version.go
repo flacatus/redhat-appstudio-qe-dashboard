@@ -8,7 +8,7 @@ import (
 
 // Version godoc
 // @Summary Version
-// @Description returns quality backend version and git commit hash
+// @Description returns quality backend version
 // @Tags HTTP API
 // @Produce json
 // @Router /api/version [get]

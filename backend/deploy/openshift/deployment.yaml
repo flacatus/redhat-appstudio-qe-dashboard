@@ -1,28 +1,40 @@
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: quality-dashboard-backend
+  name: quality-backend-dashboard
   namespace: appstudio-qe
   labels:
+    app: quality-dashboard
     app.kubernetes.io/component: quality-backend
+    app.kubernetes.io/instance: quality-dashboard
     app.kubernetes.io/name: quality-dashboard
+    component: quality-backend
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/component: quality-backend
-      app.kubernetes.io/name: quality-dashboard
+      app: quality-dashboard
+      component: quality-backend
   template:
     metadata:
       labels:
+        app: quality-dashboard
         app.kubernetes.io/component: quality-backend
+        app.kubernetes.io/instance: quality-dashboard
         app.kubernetes.io/name: quality-dashboard
+        component: quality-backend
     spec:
       restartPolicy: Always
-      schedulerName: default-scheduler
       terminationGracePeriodSeconds: 30
       containers:
-        - name: quality-backend
+        - resources:
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 32Mi
+          name: quality-backend-dashboard
           command: ["/root/qe-dashboard-backend"]
           env:
             - name: GITHUB_TOKEN
@@ -30,17 +42,21 @@ spec:
           args:
             - "--config-file=/config/backend.properties"
             - "--port=8080"
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
           ports:
             - name: http
               containerPort: 8080
               protocol: TCP
-          imagePullPolicy: Always
-          image: >-
-            quay.io/flacatus/dashboard-backend:next
+          imagePullPolicy: IfNotPresent
           volumeMounts:
           - name: config
             mountPath: "/config"
             readOnly: true
+          image: >-
+            quay.io/flacatus/dashboard-backend:next
       volumes:
         # You set volumes at the Pod level, then mount them into containers inside that Pod
         - name: config

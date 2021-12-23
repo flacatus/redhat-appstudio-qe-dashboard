@@ -8,9 +8,6 @@ type ApiResponse = {
 const API_URL = (process.env.REACT_APP_API_SERVER_URL || 'http://localhost:9898')
 
 async function getVersion(){
-    console.log(API_URL)
-    console.log(process.env)
-    console.log(process.env.REACT_APP_API_SERVER_URL)
     const result: ApiResponse = { code: 0, data: {} };
     const subPath ='/api/version';
     const uri = API_URL + subPath;
@@ -28,7 +25,8 @@ async function getRepositories(){
     const result: ApiResponse = { code: 0, data: {} };
     const subPath ='/api/quality/repositories';
     const uri = API_URL + subPath;
-    await axios.get(uri).then((res: AxiosResponse) => {
+    await axios.get(uri, {
+      }).then((res: AxiosResponse) => {
         result.code = res.status;
         result.data = res.data;
     }).catch((err) => {
@@ -38,4 +36,18 @@ async function getRepositories(){
     return result;
 }
 
-export { getVersion, getRepositories }
+async function createRepository(data = {}){
+    const result: ApiResponse = { code: 0, data: {} };
+    const subPath ='/api/quality/repositories/create';
+    const uri = API_URL + subPath;
+    await axios.post(uri, {...data}).then((res: AxiosResponse) => {
+        result.code = res.status;
+        result.data = res.data;
+    }).catch((err) => {
+        result.code = err.response.status;
+        result.data = err.response.data;
+    });
+    return result;
+}
+
+export { getVersion, getRepositories, createRepository }

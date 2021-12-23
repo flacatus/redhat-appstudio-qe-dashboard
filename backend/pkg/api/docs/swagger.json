@@ -20,7 +20,7 @@
     "host": "localhost:9898",
     "basePath": "/",
     "paths": {
-        "/quality/repositories": {
+        "/api/quality/repositories": {
             "get": {
                 "description": "returns all repository information founded in server configuration",
                 "produces": [
@@ -37,9 +37,9 @@
                 }
             }
         },
-        "/version": {
+        "/api/version": {
             "get": {
-                "description": "returns quality backend version and git commit hash",
+                "description": "returns quality backend version",
                 "produces": [
                     "application/json"
                 ],

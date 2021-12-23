@@ -30,7 +30,7 @@ var doc = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/quality/repositories": {
+        "/api/quality/repositories": {
             "get": {
                 "description": "returns all repository information founded in server configuration",
                 "produces": [
@@ -47,9 +47,9 @@ var doc = `{
                 }
             }
         },
-        "/version": {
+        "/api/version": {
             "get": {
-                "description": "returns quality backend version and git commit hash",
+                "description": "returns quality backend version",
                 "produces": [
                     "application/json"
                 ],

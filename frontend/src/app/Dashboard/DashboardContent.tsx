@@ -4,6 +4,7 @@ import { Context } from '@app/store/store';
 import { getRepositories } from '@app/utils/APIService';
 import { PageSection } from '@patternfly/react-core';
 
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const DashboardContent = () => {
   const columns = ['Git Organization', 'Repository', 'Coverage', 'Artifacts'];
 
@@ -11,8 +12,7 @@ export const DashboardContent = () => {
   const { state, dispatch } = useContext(Context) // required to access the global state 
 
   useEffect(()=> {
-
-    getRepositories().then((res) => { // making the api call here
+    getRepositories().then((res) => {
       if(res.code === 200){
           const result = res.data;
           console.log(result)

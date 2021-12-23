@@ -1,45 +1,35 @@
 package config
 
 type GithubActionsSpec struct {
-	Monitor bool `yaml:"monitor"`
+	Monitor bool `json:"monitor"`
 }
 
 type OpenshiftCISpec struct {
-	Monitor bool `yaml:"monitor"`
+	Monitor bool `json:"monitor"`
 }
 
 type CIAnalyzerCoverageSpec struct {
-	GitHubActions GithubActionsSpec `yaml:"actions"`
-	OpenshiftCI   OpenshiftCISpec   `yaml:"openshiftCI"`
-}
-
-type CIAnalyzerArtifactsSpec struct {
-	GitHubActions GithubActionsSpec `yaml:"actions"`
-	OpenshiftCI   OpenshiftCISpec   `yaml:"openshiftCI"`
-} //
-
-type Artifacts struct {
-	ContainerName string `yaml:"containerName"`
-	ContainerURL  string `yaml:"containerUrl"`
+	GitHubActions GithubActionsSpec `json:"actions"`
+	OpenshiftCI   OpenshiftCISpec   `json:"openshiftCI"`
 }
 
 type JobSpec struct {
-	GitHubActions GithubActionsSpec `yaml:"actions"`
-	OpenshiftCI   OpenshiftCISpec   `yaml:"openshiftCI"`
+	GitHubActions GithubActionsSpec `json:"github_actions"`
+	OpenshiftCI   OpenshiftCISpec   `json:"openshift_ci"`
 }
 
-type Git struct {
-	GitOrganization string      `yaml:"gitOrganization"`
-	GitRepository   string      `yaml:"repoName"`
-	Jobs            JobSpec     `yaml:"jobs"`
-	Artifacts       []Artifacts `yaml:"artifacts"`
+type GitRepository struct {
+	GitOrganization string   `json:"git_organization"`
+	GitRepository   string   `json:"repository_name"`
+	Jobs            JobSpec  `json:"jobs"`
+	Artifacts       []string `json:"artifacts"`
 }
 
 type RepoSpec struct {
-	Git []Git `yaml:"git"`
+	Git []GitRepository `json:"git_repository"`
 }
 
 type ConfigSpec struct {
-	Name string   `yaml:"name"`
-	Spec RepoSpec `yaml:"spec"`
+	Name string   `json:"name"`
+	Spec RepoSpec `json:"spec"`
 }

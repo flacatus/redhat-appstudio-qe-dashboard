@@ -2,19 +2,18 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/flacatus/qe-dashboard-backend/config"
 	"github.com/flacatus/qe-dashboard-backend/pkg/api/apis/codecov"
 	"github.com/flacatus/qe-dashboard-backend/pkg/api/apis/github"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
 
 var RepositoryCacheKey = "repositories"
 
-// rotationStrategy describes a strategy for generating cryptographic keys, how
-// often to rotate them, and how long they can validate signatures after rotation.
+// rotationStrategy describes a strategy for generating server configuration from a file.
 type rotationStrategy struct {
 	// Time between rotations.
 	rotationFrequency time.Duration
@@ -57,11 +56,10 @@ func (s *Server) rotate() error {
 	return nil
 }
 
-// staticRotationStrategy returns a strategy which never rotates keys.
 func staticRotationStrategy() rotationStrategy {
 	return rotationStrategy{
 		// Setting these values to 4 hours is easier than having a flag indicating no rotation.
-		rotationFrequency: time.Minute * 10,
+		rotationFrequency: time.Minute * 20,
 	}
 }
 
@@ -69,12 +67,16 @@ func (s *Server) CacheRepositoriesInformation() (repos []Repos, err error) {
 	gh := github.NewGitubClient()
 	codecov := codecov.NewCodeCoverageClient()
 
-	cfg, err := config.GetServerConfiguration(viper.GetString("config-file"))
+	cfg := s.obtainRepositoriesConfiguration()
 	if err != nil {
 		s.logger.Sugar().Errorf("Failed to obtain configuration from file", zap.Error(err))
 		return repos, err
 	}
-	for _, repo := range cfg.ConfigSpec.Spec.Git {
+	if len(cfg.Spec.Git) == 0 {
+		return repos, nil
+	}
+
+	for _, repo := range cfg.Spec.Git {
 		s.logger.Sugar().Infof("Obtaining quality information for organization %s from repository %s", repo.GitOrganization, repo.GitRepository)
 
 		repoInfo, err := gh.GetRepositoriesInformation(repo.GitOrganization, repo.GitRepository)
@@ -99,6 +101,7 @@ func (s *Server) CacheRepositoriesInformation() (repos []Repos, err error) {
 			GitOrganization: repo.GitOrganization,
 			RepositoryName:  repoInfo.RepositoryName,
 			Description:     repoInfo.Description,
+			HTMLUrl:         repoInfo.HTMLUrl,
 			Coverage: CoverageSpec{
 				CodeCoverage: codecov.Commit.Totals.TotalCoverage,
 			},
@@ -110,4 +113,14 @@ func (s *Server) CacheRepositoriesInformation() (repos []Repos, err error) {
 	}
 
 	return repos, err
+}
+
+func (s *Server) obtainRepositoriesConfiguration() config.ConfigSpec {
+	var cfg config.ConfigSpec
+	repoList, _ := s.cache.Get("config")
+
+	cacheRepos, _ := json.Marshal(repoList)
+	json.Unmarshal(cacheRepos, &cfg)
+
+	return cfg
 }

@@ -1,9 +1,3 @@
-# Makefile for releasing quality-backend
-#
-# The release version is controlled from pkg/version
-
-VERSION:=$(shell grep 'VERSION' pkg/version/version.go | awk '{ print $$4 }' | tr -d '"')
-
 .PHONY: test
 test:
 	go test ./... -coverprofile cover.out

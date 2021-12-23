@@ -1,10 +1,10 @@
 kind: Service
 apiVersion: v1
 metadata:
-  name: quality-backend-service
+  name: quality-frontend-service
   namespace: appstudio-qe
   labels:
-    app.kubernetes.io/component: quality-backend
+    app.kubernetes.io/component: quality-frontend
     app.kubernetes.io/instance: quality-dashboard
     app.kubernetes.io/name: quality-dashboard
 spec:
@@ -18,6 +18,6 @@ spec:
   internalTrafficPolicy: Cluster
   ipFamilyPolicy: SingleStack
   selector:
-    app.kubernetes.io/component: quality-backend
+    app.kubernetes.io/component: quality-frontend
     app.kubernetes.io/instance: quality-dashboard
     app.kubernetes.io/name: quality-dashboard
