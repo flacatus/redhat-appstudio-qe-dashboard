@@ -14,8 +14,25 @@ import (
 
 	"github.com/flacatus/qe-dashboard-backend/pkg/api"
 	"github.com/flacatus/qe-dashboard-backend/pkg/signals"
+	"github.com/flacatus/qe-dashboard-backend/pkg/storage"
+	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent"
+	"github.com/flacatus/qe-dashboard-backend/pkg/utils"
 	"github.com/flacatus/qe-dashboard-backend/pkg/version"
 )
+
+const (
+	PostgresEntHostEnv     = "POSTGRES_ENT_HOST"
+	PostgresEntPortEnv     = "POSTGRES_ENT_PORT"
+	PostgresEntDatabaseEnv = "POSTGRES_ENT_DATABASE"
+	PostgresEntUserEnv     = "POSTGRES_ENT_USER"
+	PostgresEntPasswordEnv = "POSTGRES_ENT_PASSWORD"
+)
+
+type keyCacher struct {
+	storage.Storage
+
+	now func() time.Time
+}
 
 func main() {
 	// flags definition
@@ -76,10 +93,16 @@ func main() {
 	// log version and port
 	logger.Info("Starting qe-dashboard-backend",
 		zap.String("version", viper.GetString("version")),
-		zap.String("revision", viper.GetString("revision")),
 		zap.String("port", srvCfg.Port),
 	)
 
+	cfg := GetPostgresConnectionDetails()
+
+	storage, err := cfg.Open()
+	if err != nil {
+		logger.Fatal("Server fail to initialize database connection", zap.Error(err))
+	}
+	srvCfg.Storage = newKeyCacher(storage, time.Now)
 	// start HTTP server
 	srv, _ := api.NewServer(&srvCfg, logger)
 	stopCh := signals.SetupSignalHandler()
@@ -131,4 +154,28 @@ func initZap(logLevel string) (*zap.Logger, error) {
 	}
 
 	return zapConfig.Build()
+}
+
+// Return postgres configurations from given environments
+func GetPostgresConnectionDetails() ent.Postgres {
+	return ent.Postgres{
+		NetworkDB: ent.NetworkDB{
+			Database: utils.GetEnv(PostgresEntDatabaseEnv, "postgres"),
+			User:     utils.GetEnv(PostgresEntUserEnv, "postgres"),
+			Password: utils.GetEnv(PostgresEntPasswordEnv, "postgres"),
+			Host:     utils.GetEnv(PostgresEntHostEnv, "localhost"),
+			Port:     utils.GetPortEnv(PostgresEntPortEnv, 5432),
+		},
+		SSL: ent.SSL{
+			Mode: "disable", // Postgres container doesn't support SSL.
+		},
+	}
+}
+
+// newKeyCacher returns a storage which caches keys so long as the next
+func newKeyCacher(s storage.Storage, now func() time.Time) storage.Storage {
+	if now == nil {
+		now = time.Now
+	}
+	return &keyCacher{Storage: s, now: now}
 }

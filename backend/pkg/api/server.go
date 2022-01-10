@@ -9,6 +9,7 @@ import (
 	"github.com/dgraph-io/ristretto"
 	"github.com/flacatus/qe-dashboard-backend/config"
 	_ "github.com/flacatus/qe-dashboard-backend/pkg/api/docs"
+	"github.com/flacatus/qe-dashboard-backend/pkg/storage"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 	"github.com/spf13/viper"
@@ -17,6 +18,9 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
+
+	// Register postgres driver.
+	_ "github.com/lib/pq"
 )
 
 // @title Quality Backend API
@@ -42,6 +46,7 @@ type Config struct {
 	Hostname                  string        `mapstructure:"hostname"`
 	H2C                       bool          `mapstructure:"h2c"`
 	RandomError               bool          `mapstructure:"random-error"`
+	Storage                   storage.Storage
 }
 
 type Server struct {

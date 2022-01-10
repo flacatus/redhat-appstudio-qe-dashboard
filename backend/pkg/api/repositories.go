@@ -3,12 +3,14 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"reflect"
 	"time"
 
 	"github.com/flacatus/qe-dashboard-backend/config"
 	"github.com/flacatus/qe-dashboard-backend/pkg/api/apis/github"
+	"github.com/flacatus/qe-dashboard-backend/pkg/storage"
 )
 
 type SecurityScannerSpec struct {
@@ -49,7 +51,23 @@ type Repos struct {
 func (s *Server) repositoriesHandler(w http.ResponseWriter, r *http.Request) {
 	// set a value with a cost of 1
 	repoList, _ := s.cache.Get(RepositoryCacheKey)
-
+	repo, err := s.config.Storage.CreateRepository(storage.Repository{
+		RepositoryName:  "e2e-tests",
+		GitOrganization: "redhat-appstudio",
+		Description:     "NULL",
+		GitURL:          "NULL",
+	})
+	if err != nil {
+		s.ErrorResponse(w, r, "Failed to obtain repositories. There are no repository cached", 500)
+	}
+	err = s.config.Storage.CreateCoverage(storage.Coverage{
+		RepositoryName:  "e2e-tests",
+		GitOrganization: "redhat-appstudio",
+	}, repo.ID)
+	if err != nil {
+		s.ErrorResponse(w, r, "Failed to obtain repositories. There are no repository cached", 500)
+	}
+	fmt.Println(err)
 	if reflect.ValueOf(repoList).IsNil() {
 		s.ErrorResponse(w, r, "Failed to obtain repositories. There are no repository cached", 500)
 	} else {

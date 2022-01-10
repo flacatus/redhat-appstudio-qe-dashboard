@@ -3,25 +3,18 @@ module github.com/flacatus/qe-dashboard-backend
 go 1.16
 
 require (
-	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
-	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
+	entgo.io/ent v0.9.1
 	github.com/dgraph-io/ristretto v0.1.0
-	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1
-	github.com/fatih/color v1.9.0
-	github.com/fsnotify/fsnotify v1.4.9
-	github.com/gomodule/redigo v1.8.4
+	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/mux v1.8.0
-	github.com/gorilla/websocket v1.4.2
-	github.com/mattn/go-isatty v0.0.12 // indirect
-	github.com/prometheus/client_golang v1.11.0
+	github.com/lib/pq v1.10.4
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rs/cors v1.8.0
-	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.8.1
 	github.com/swaggo/http-swagger v1.0.0
 	github.com/swaggo/swag v1.7.4
 	go.uber.org/zap v1.19.1
 	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
-	google.golang.org/grpc v1.38.0
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	golang.org/x/sys v0.0.0-20210603081109-ebe580a85c40 // indirect
 )
