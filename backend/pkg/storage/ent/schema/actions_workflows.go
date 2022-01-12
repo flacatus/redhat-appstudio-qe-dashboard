@@ -18,35 +18,36 @@ create table password
 */
 
 // Password holds the schema definition for the Password entity.
-type CodeCov struct {
+type Workflows struct {
 	ent.Schema
 }
 
 // Fields of the Password.
-func (CodeCov) Fields() []ent.Field {
+func (Workflows) Fields() []ent.Field {
 	return []ent.Field{
-		field.UUID("id", uuid.UUID{}).
+		field.UUID("workflow_id", uuid.UUID{}).
 			Default(uuid.New).
-			StorageKey("id").
+			StorageKey("workflow_id").
 			Unique(),
-		field.Text("repository_name").
+		field.Text("workflow_name").
 			SchemaType(textSchema).
 			NotEmpty(),
-		field.Text("git_organization").
+		field.Text("badge_url").
 			SchemaType(textSchema),
-		field.Float("coverage_percentage").
-			SchemaType(intSchema),
+		field.Text("html_url").
+			SchemaType(textSchema),
+		field.Text("job_url").
+			SchemaType(textSchema),
+		field.Text("state").
+			SchemaType(textSchema),
 	}
 }
 
 // Edges of the Password.
-func (CodeCov) Edges() []ent.Edge {
+func (Workflows) Edges() []ent.Edge {
 	return []ent.Edge{
-		// Create an inverse-edge called "owner" of type `User`
-		// and reference it to the "cars" edge (in User schema)
-		// explicitly using the `Ref` method.
-		edge.From("codecov", Repository.Type).
-			Ref("codecov").
+		edge.From("workflows", Repository.Type).
+			Ref("workflows").
 			Unique(),
 	}
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/codecov"
 	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/predicate"
 	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/repository"
+	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/workflows"
 	"github.com/google/uuid"
 
 	"entgo.io/ent"
@@ -26,23 +27,25 @@ const (
 	// Node types.
 	TypeCodeCov    = "CodeCov"
 	TypeRepository = "Repository"
+	TypeWorkflows  = "Workflows"
 )
 
 // CodeCovMutation represents an operation that mutates the CodeCov nodes in the graph.
 type CodeCovMutation struct {
 	config
-	op               Op
-	typ              string
-	id               *uuid.UUID
-	repository_name  *string
-	git_organization *string
-	clearedFields    map[string]struct{}
-	repo_id          map[uuid.UUID]struct{}
-	removedrepo_id   map[uuid.UUID]struct{}
-	clearedrepo_id   bool
-	done             bool
-	oldValue         func(context.Context) (*CodeCov, error)
-	predicates       []predicate.CodeCov
+	op                     Op
+	typ                    string
+	id                     *uuid.UUID
+	repository_name        *string
+	git_organization       *string
+	coverage_percentage    *float64
+	addcoverage_percentage *float64
+	clearedFields          map[string]struct{}
+	codecov                *uuid.UUID
+	clearedcodecov         bool
+	done                   bool
+	oldValue               func(context.Context) (*CodeCov, error)
+	predicates             []predicate.CodeCov
 }
 
 var _ ent.Mutation = (*CodeCovMutation)(nil)
@@ -202,58 +205,99 @@ func (m *CodeCovMutation) ResetGitOrganization() {
 	m.git_organization = nil
 }
 
-// AddRepoIDIDs adds the "repo_id" edge to the Repository entity by ids.
-func (m *CodeCovMutation) AddRepoIDIDs(ids ...uuid.UUID) {
-	if m.repo_id == nil {
-		m.repo_id = make(map[uuid.UUID]struct{})
+// SetCoveragePercentage sets the "coverage_percentage" field.
+func (m *CodeCovMutation) SetCoveragePercentage(f float64) {
+	m.coverage_percentage = &f
+	m.addcoverage_percentage = nil
+}
+
+// CoveragePercentage returns the value of the "coverage_percentage" field in the mutation.
+func (m *CodeCovMutation) CoveragePercentage() (r float64, exists bool) {
+	v := m.coverage_percentage
+	if v == nil {
+		return
 	}
-	for i := range ids {
-		m.repo_id[ids[i]] = struct{}{}
+	return *v, true
+}
+
+// OldCoveragePercentage returns the old "coverage_percentage" field's value of the CodeCov entity.
+// If the CodeCov object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CodeCovMutation) OldCoveragePercentage(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldCoveragePercentage is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldCoveragePercentage requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCoveragePercentage: %w", err)
+	}
+	return oldValue.CoveragePercentage, nil
+}
+
+// AddCoveragePercentage adds f to the "coverage_percentage" field.
+func (m *CodeCovMutation) AddCoveragePercentage(f float64) {
+	if m.addcoverage_percentage != nil {
+		*m.addcoverage_percentage += f
+	} else {
+		m.addcoverage_percentage = &f
 	}
 }
 
-// ClearRepoID clears the "repo_id" edge to the Repository entity.
-func (m *CodeCovMutation) ClearRepoID() {
-	m.clearedrepo_id = true
-}
-
-// RepoIDCleared reports if the "repo_id" edge to the Repository entity was cleared.
-func (m *CodeCovMutation) RepoIDCleared() bool {
-	return m.clearedrepo_id
-}
-
-// RemoveRepoIDIDs removes the "repo_id" edge to the Repository entity by IDs.
-func (m *CodeCovMutation) RemoveRepoIDIDs(ids ...uuid.UUID) {
-	if m.removedrepo_id == nil {
-		m.removedrepo_id = make(map[uuid.UUID]struct{})
+// AddedCoveragePercentage returns the value that was added to the "coverage_percentage" field in this mutation.
+func (m *CodeCovMutation) AddedCoveragePercentage() (r float64, exists bool) {
+	v := m.addcoverage_percentage
+	if v == nil {
+		return
 	}
-	for i := range ids {
-		delete(m.repo_id, ids[i])
-		m.removedrepo_id[ids[i]] = struct{}{}
-	}
+	return *v, true
 }
 
-// RemovedRepoID returns the removed IDs of the "repo_id" edge to the Repository entity.
-func (m *CodeCovMutation) RemovedRepoIDIDs() (ids []uuid.UUID) {
-	for id := range m.removedrepo_id {
-		ids = append(ids, id)
+// ResetCoveragePercentage resets all changes to the "coverage_percentage" field.
+func (m *CodeCovMutation) ResetCoveragePercentage() {
+	m.coverage_percentage = nil
+	m.addcoverage_percentage = nil
+}
+
+// SetCodecovID sets the "codecov" edge to the Repository entity by id.
+func (m *CodeCovMutation) SetCodecovID(id uuid.UUID) {
+	m.codecov = &id
+}
+
+// ClearCodecov clears the "codecov" edge to the Repository entity.
+func (m *CodeCovMutation) ClearCodecov() {
+	m.clearedcodecov = true
+}
+
+// CodecovCleared reports if the "codecov" edge to the Repository entity was cleared.
+func (m *CodeCovMutation) CodecovCleared() bool {
+	return m.clearedcodecov
+}
+
+// CodecovID returns the "codecov" edge ID in the mutation.
+func (m *CodeCovMutation) CodecovID() (id uuid.UUID, exists bool) {
+	if m.codecov != nil {
+		return *m.codecov, true
 	}
 	return
 }
 
-// RepoIDIDs returns the "repo_id" edge IDs in the mutation.
-func (m *CodeCovMutation) RepoIDIDs() (ids []uuid.UUID) {
-	for id := range m.repo_id {
-		ids = append(ids, id)
+// CodecovIDs returns the "codecov" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CodecovID instead. It exists only for internal usage by the builders.
+func (m *CodeCovMutation) CodecovIDs() (ids []uuid.UUID) {
+	if id := m.codecov; id != nil {
+		ids = append(ids, *id)
 	}
 	return
 }
 
-// ResetRepoID resets all changes to the "repo_id" edge.
-func (m *CodeCovMutation) ResetRepoID() {
-	m.repo_id = nil
-	m.clearedrepo_id = false
-	m.removedrepo_id = nil
+// ResetCodecov resets all changes to the "codecov" edge.
+func (m *CodeCovMutation) ResetCodecov() {
+	m.codecov = nil
+	m.clearedcodecov = false
 }
 
 // Where appends a list predicates to the CodeCovMutation builder.
@@ -275,12 +319,15 @@ func (m *CodeCovMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CodeCovMutation) Fields() []string {
-	fields := make([]string, 0, 2)
+	fields := make([]string, 0, 3)
 	if m.repository_name != nil {
 		fields = append(fields, codecov.FieldRepositoryName)
 	}
 	if m.git_organization != nil {
 		fields = append(fields, codecov.FieldGitOrganization)
+	}
+	if m.coverage_percentage != nil {
+		fields = append(fields, codecov.FieldCoveragePercentage)
 	}
 	return fields
 }
@@ -294,6 +341,8 @@ func (m *CodeCovMutation) Field(name string) (ent.Value, bool) {
 		return m.RepositoryName()
 	case codecov.FieldGitOrganization:
 		return m.GitOrganization()
+	case codecov.FieldCoveragePercentage:
+		return m.CoveragePercentage()
 	}
 	return nil, false
 }
@@ -307,6 +356,8 @@ func (m *CodeCovMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldRepositoryName(ctx)
 	case codecov.FieldGitOrganization:
 		return m.OldGitOrganization(ctx)
+	case codecov.FieldCoveragePercentage:
+		return m.OldCoveragePercentage(ctx)
 	}
 	return nil, fmt.Errorf("unknown CodeCov field %s", name)
 }
@@ -330,6 +381,13 @@ func (m *CodeCovMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetGitOrganization(v)
 		return nil
+	case codecov.FieldCoveragePercentage:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCoveragePercentage(v)
+		return nil
 	}
 	return fmt.Errorf("unknown CodeCov field %s", name)
 }
@@ -337,13 +395,21 @@ func (m *CodeCovMutation) SetField(name string, value ent.Value) error {
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *CodeCovMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.addcoverage_percentage != nil {
+		fields = append(fields, codecov.FieldCoveragePercentage)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *CodeCovMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case codecov.FieldCoveragePercentage:
+		return m.AddedCoveragePercentage()
+	}
 	return nil, false
 }
 
@@ -352,6 +418,13 @@ func (m *CodeCovMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *CodeCovMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case codecov.FieldCoveragePercentage:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCoveragePercentage(v)
+		return nil
 	}
 	return fmt.Errorf("unknown CodeCov numeric field %s", name)
 }
@@ -385,6 +458,9 @@ func (m *CodeCovMutation) ResetField(name string) error {
 	case codecov.FieldGitOrganization:
 		m.ResetGitOrganization()
 		return nil
+	case codecov.FieldCoveragePercentage:
+		m.ResetCoveragePercentage()
+		return nil
 	}
 	return fmt.Errorf("unknown CodeCov field %s", name)
 }
@@ -392,8 +468,8 @@ func (m *CodeCovMutation) ResetField(name string) error {
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *CodeCovMutation) AddedEdges() []string {
 	edges := make([]string, 0, 1)
-	if m.repo_id != nil {
-		edges = append(edges, codecov.EdgeRepoID)
+	if m.codecov != nil {
+		edges = append(edges, codecov.EdgeCodecov)
 	}
 	return edges
 }
@@ -402,12 +478,10 @@ func (m *CodeCovMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *CodeCovMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case codecov.EdgeRepoID:
-		ids := make([]ent.Value, 0, len(m.repo_id))
-		for id := range m.repo_id {
-			ids = append(ids, id)
+	case codecov.EdgeCodecov:
+		if id := m.codecov; id != nil {
+			return []ent.Value{*id}
 		}
-		return ids
 	}
 	return nil
 }
@@ -415,9 +489,6 @@ func (m *CodeCovMutation) AddedIDs(name string) []ent.Value {
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *CodeCovMutation) RemovedEdges() []string {
 	edges := make([]string, 0, 1)
-	if m.removedrepo_id != nil {
-		edges = append(edges, codecov.EdgeRepoID)
-	}
 	return edges
 }
 
@@ -425,12 +496,6 @@ func (m *CodeCovMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *CodeCovMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
-	case codecov.EdgeRepoID:
-		ids := make([]ent.Value, 0, len(m.removedrepo_id))
-		for id := range m.removedrepo_id {
-			ids = append(ids, id)
-		}
-		return ids
 	}
 	return nil
 }
@@ -438,8 +503,8 @@ func (m *CodeCovMutation) RemovedIDs(name string) []ent.Value {
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *CodeCovMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 1)
-	if m.clearedrepo_id {
-		edges = append(edges, codecov.EdgeRepoID)
+	if m.clearedcodecov {
+		edges = append(edges, codecov.EdgeCodecov)
 	}
 	return edges
 }
@@ -448,8 +513,8 @@ func (m *CodeCovMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *CodeCovMutation) EdgeCleared(name string) bool {
 	switch name {
-	case codecov.EdgeRepoID:
-		return m.clearedrepo_id
+	case codecov.EdgeCodecov:
+		return m.clearedcodecov
 	}
 	return false
 }
@@ -458,6 +523,9 @@ func (m *CodeCovMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *CodeCovMutation) ClearEdge(name string) error {
 	switch name {
+	case codecov.EdgeCodecov:
+		m.ClearCodecov()
+		return nil
 	}
 	return fmt.Errorf("unknown CodeCov unique edge %s", name)
 }
@@ -466,8 +534,8 @@ func (m *CodeCovMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *CodeCovMutation) ResetEdge(name string) error {
 	switch name {
-	case codecov.EdgeRepoID:
-		m.ResetRepoID()
+	case codecov.EdgeCodecov:
+		m.ResetCodecov()
 		return nil
 	}
 	return fmt.Errorf("unknown CodeCov edge %s", name)
@@ -484,6 +552,12 @@ type RepositoryMutation struct {
 	description      *string
 	git_url          *string
 	clearedFields    map[string]struct{}
+	workflows        map[int]struct{}
+	removedworkflows map[int]struct{}
+	clearedworkflows bool
+	codecov          map[uuid.UUID]struct{}
+	removedcodecov   map[uuid.UUID]struct{}
+	clearedcodecov   bool
 	done             bool
 	oldValue         func(context.Context) (*Repository, error)
 	predicates       []predicate.Repository
@@ -718,6 +792,114 @@ func (m *RepositoryMutation) ResetGitURL() {
 	m.git_url = nil
 }
 
+// AddWorkflowIDs adds the "workflows" edge to the Workflows entity by ids.
+func (m *RepositoryMutation) AddWorkflowIDs(ids ...int) {
+	if m.workflows == nil {
+		m.workflows = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.workflows[ids[i]] = struct{}{}
+	}
+}
+
+// ClearWorkflows clears the "workflows" edge to the Workflows entity.
+func (m *RepositoryMutation) ClearWorkflows() {
+	m.clearedworkflows = true
+}
+
+// WorkflowsCleared reports if the "workflows" edge to the Workflows entity was cleared.
+func (m *RepositoryMutation) WorkflowsCleared() bool {
+	return m.clearedworkflows
+}
+
+// RemoveWorkflowIDs removes the "workflows" edge to the Workflows entity by IDs.
+func (m *RepositoryMutation) RemoveWorkflowIDs(ids ...int) {
+	if m.removedworkflows == nil {
+		m.removedworkflows = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.workflows, ids[i])
+		m.removedworkflows[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedWorkflows returns the removed IDs of the "workflows" edge to the Workflows entity.
+func (m *RepositoryMutation) RemovedWorkflowsIDs() (ids []int) {
+	for id := range m.removedworkflows {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// WorkflowsIDs returns the "workflows" edge IDs in the mutation.
+func (m *RepositoryMutation) WorkflowsIDs() (ids []int) {
+	for id := range m.workflows {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetWorkflows resets all changes to the "workflows" edge.
+func (m *RepositoryMutation) ResetWorkflows() {
+	m.workflows = nil
+	m.clearedworkflows = false
+	m.removedworkflows = nil
+}
+
+// AddCodecovIDs adds the "codecov" edge to the CodeCov entity by ids.
+func (m *RepositoryMutation) AddCodecovIDs(ids ...uuid.UUID) {
+	if m.codecov == nil {
+		m.codecov = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.codecov[ids[i]] = struct{}{}
+	}
+}
+
+// ClearCodecov clears the "codecov" edge to the CodeCov entity.
+func (m *RepositoryMutation) ClearCodecov() {
+	m.clearedcodecov = true
+}
+
+// CodecovCleared reports if the "codecov" edge to the CodeCov entity was cleared.
+func (m *RepositoryMutation) CodecovCleared() bool {
+	return m.clearedcodecov
+}
+
+// RemoveCodecovIDs removes the "codecov" edge to the CodeCov entity by IDs.
+func (m *RepositoryMutation) RemoveCodecovIDs(ids ...uuid.UUID) {
+	if m.removedcodecov == nil {
+		m.removedcodecov = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.codecov, ids[i])
+		m.removedcodecov[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedCodecov returns the removed IDs of the "codecov" edge to the CodeCov entity.
+func (m *RepositoryMutation) RemovedCodecovIDs() (ids []uuid.UUID) {
+	for id := range m.removedcodecov {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// CodecovIDs returns the "codecov" edge IDs in the mutation.
+func (m *RepositoryMutation) CodecovIDs() (ids []uuid.UUID) {
+	for id := range m.codecov {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetCodecov resets all changes to the "codecov" edge.
+func (m *RepositoryMutation) ResetCodecov() {
+	m.codecov = nil
+	m.clearedcodecov = false
+	m.removedcodecov = nil
+}
+
 // Where appends a list predicates to the RepositoryMutation builder.
 func (m *RepositoryMutation) Where(ps ...predicate.Repository) {
 	m.predicates = append(m.predicates, ps...)
@@ -887,48 +1069,741 @@ func (m *RepositoryMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *RepositoryMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 2)
+	if m.workflows != nil {
+		edges = append(edges, repository.EdgeWorkflows)
+	}
+	if m.codecov != nil {
+		edges = append(edges, repository.EdgeCodecov)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *RepositoryMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case repository.EdgeWorkflows:
+		ids := make([]ent.Value, 0, len(m.workflows))
+		for id := range m.workflows {
+			ids = append(ids, id)
+		}
+		return ids
+	case repository.EdgeCodecov:
+		ids := make([]ent.Value, 0, len(m.codecov))
+		for id := range m.codecov {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *RepositoryMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 2)
+	if m.removedworkflows != nil {
+		edges = append(edges, repository.EdgeWorkflows)
+	}
+	if m.removedcodecov != nil {
+		edges = append(edges, repository.EdgeCodecov)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *RepositoryMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case repository.EdgeWorkflows:
+		ids := make([]ent.Value, 0, len(m.removedworkflows))
+		for id := range m.removedworkflows {
+			ids = append(ids, id)
+		}
+		return ids
+	case repository.EdgeCodecov:
+		ids := make([]ent.Value, 0, len(m.removedcodecov))
+		for id := range m.removedcodecov {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *RepositoryMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 2)
+	if m.clearedworkflows {
+		edges = append(edges, repository.EdgeWorkflows)
+	}
+	if m.clearedcodecov {
+		edges = append(edges, repository.EdgeCodecov)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *RepositoryMutation) EdgeCleared(name string) bool {
+	switch name {
+	case repository.EdgeWorkflows:
+		return m.clearedworkflows
+	case repository.EdgeCodecov:
+		return m.clearedcodecov
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *RepositoryMutation) ClearEdge(name string) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown Repository unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *RepositoryMutation) ResetEdge(name string) error {
+	switch name {
+	case repository.EdgeWorkflows:
+		m.ResetWorkflows()
+		return nil
+	case repository.EdgeCodecov:
+		m.ResetCodecov()
+		return nil
+	}
 	return fmt.Errorf("unknown Repository edge %s", name)
+}
+
+// WorkflowsMutation represents an operation that mutates the Workflows nodes in the graph.
+type WorkflowsMutation struct {
+	config
+	op               Op
+	typ              string
+	id               *int
+	workflow_id      *uuid.UUID
+	workflow_name    *string
+	badge_url        *string
+	html_url         *string
+	job_url          *string
+	state            *string
+	clearedFields    map[string]struct{}
+	workflows        *uuid.UUID
+	clearedworkflows bool
+	done             bool
+	oldValue         func(context.Context) (*Workflows, error)
+	predicates       []predicate.Workflows
+}
+
+var _ ent.Mutation = (*WorkflowsMutation)(nil)
+
+// workflowsOption allows management of the mutation configuration using functional options.
+type workflowsOption func(*WorkflowsMutation)
+
+// newWorkflowsMutation creates new mutation for the Workflows entity.
+func newWorkflowsMutation(c config, op Op, opts ...workflowsOption) *WorkflowsMutation {
+	m := &WorkflowsMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeWorkflows,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withWorkflowsID sets the ID field of the mutation.
+func withWorkflowsID(id int) workflowsOption {
+	return func(m *WorkflowsMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Workflows
+		)
+		m.oldValue = func(ctx context.Context) (*Workflows, error) {
+			once.Do(func() {
+				if m.done {
+					err = fmt.Errorf("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Workflows.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withWorkflows sets the old Workflows of the mutation.
+func withWorkflows(node *Workflows) workflowsOption {
+	return func(m *WorkflowsMutation) {
+		m.oldValue = func(context.Context) (*Workflows, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m WorkflowsMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m WorkflowsMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, fmt.Errorf("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *WorkflowsMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// SetWorkflowID sets the "workflow_id" field.
+func (m *WorkflowsMutation) SetWorkflowID(u uuid.UUID) {
+	m.workflow_id = &u
+}
+
+// WorkflowID returns the value of the "workflow_id" field in the mutation.
+func (m *WorkflowsMutation) WorkflowID() (r uuid.UUID, exists bool) {
+	v := m.workflow_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWorkflowID returns the old "workflow_id" field's value of the Workflows entity.
+// If the Workflows object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WorkflowsMutation) OldWorkflowID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldWorkflowID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldWorkflowID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWorkflowID: %w", err)
+	}
+	return oldValue.WorkflowID, nil
+}
+
+// ResetWorkflowID resets all changes to the "workflow_id" field.
+func (m *WorkflowsMutation) ResetWorkflowID() {
+	m.workflow_id = nil
+}
+
+// SetWorkflowName sets the "workflow_name" field.
+func (m *WorkflowsMutation) SetWorkflowName(s string) {
+	m.workflow_name = &s
+}
+
+// WorkflowName returns the value of the "workflow_name" field in the mutation.
+func (m *WorkflowsMutation) WorkflowName() (r string, exists bool) {
+	v := m.workflow_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWorkflowName returns the old "workflow_name" field's value of the Workflows entity.
+// If the Workflows object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WorkflowsMutation) OldWorkflowName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldWorkflowName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldWorkflowName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWorkflowName: %w", err)
+	}
+	return oldValue.WorkflowName, nil
+}
+
+// ResetWorkflowName resets all changes to the "workflow_name" field.
+func (m *WorkflowsMutation) ResetWorkflowName() {
+	m.workflow_name = nil
+}
+
+// SetBadgeURL sets the "badge_url" field.
+func (m *WorkflowsMutation) SetBadgeURL(s string) {
+	m.badge_url = &s
+}
+
+// BadgeURL returns the value of the "badge_url" field in the mutation.
+func (m *WorkflowsMutation) BadgeURL() (r string, exists bool) {
+	v := m.badge_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBadgeURL returns the old "badge_url" field's value of the Workflows entity.
+// If the Workflows object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WorkflowsMutation) OldBadgeURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldBadgeURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldBadgeURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBadgeURL: %w", err)
+	}
+	return oldValue.BadgeURL, nil
+}
+
+// ResetBadgeURL resets all changes to the "badge_url" field.
+func (m *WorkflowsMutation) ResetBadgeURL() {
+	m.badge_url = nil
+}
+
+// SetHTMLURL sets the "html_url" field.
+func (m *WorkflowsMutation) SetHTMLURL(s string) {
+	m.html_url = &s
+}
+
+// HTMLURL returns the value of the "html_url" field in the mutation.
+func (m *WorkflowsMutation) HTMLURL() (r string, exists bool) {
+	v := m.html_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHTMLURL returns the old "html_url" field's value of the Workflows entity.
+// If the Workflows object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WorkflowsMutation) OldHTMLURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldHTMLURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldHTMLURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHTMLURL: %w", err)
+	}
+	return oldValue.HTMLURL, nil
+}
+
+// ResetHTMLURL resets all changes to the "html_url" field.
+func (m *WorkflowsMutation) ResetHTMLURL() {
+	m.html_url = nil
+}
+
+// SetJobURL sets the "job_url" field.
+func (m *WorkflowsMutation) SetJobURL(s string) {
+	m.job_url = &s
+}
+
+// JobURL returns the value of the "job_url" field in the mutation.
+func (m *WorkflowsMutation) JobURL() (r string, exists bool) {
+	v := m.job_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldJobURL returns the old "job_url" field's value of the Workflows entity.
+// If the Workflows object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WorkflowsMutation) OldJobURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldJobURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldJobURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldJobURL: %w", err)
+	}
+	return oldValue.JobURL, nil
+}
+
+// ResetJobURL resets all changes to the "job_url" field.
+func (m *WorkflowsMutation) ResetJobURL() {
+	m.job_url = nil
+}
+
+// SetState sets the "state" field.
+func (m *WorkflowsMutation) SetState(s string) {
+	m.state = &s
+}
+
+// State returns the value of the "state" field in the mutation.
+func (m *WorkflowsMutation) State() (r string, exists bool) {
+	v := m.state
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldState returns the old "state" field's value of the Workflows entity.
+// If the Workflows object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WorkflowsMutation) OldState(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldState is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldState requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldState: %w", err)
+	}
+	return oldValue.State, nil
+}
+
+// ResetState resets all changes to the "state" field.
+func (m *WorkflowsMutation) ResetState() {
+	m.state = nil
+}
+
+// SetWorkflowsID sets the "workflows" edge to the Repository entity by id.
+func (m *WorkflowsMutation) SetWorkflowsID(id uuid.UUID) {
+	m.workflows = &id
+}
+
+// ClearWorkflows clears the "workflows" edge to the Repository entity.
+func (m *WorkflowsMutation) ClearWorkflows() {
+	m.clearedworkflows = true
+}
+
+// WorkflowsCleared reports if the "workflows" edge to the Repository entity was cleared.
+func (m *WorkflowsMutation) WorkflowsCleared() bool {
+	return m.clearedworkflows
+}
+
+// WorkflowsID returns the "workflows" edge ID in the mutation.
+func (m *WorkflowsMutation) WorkflowsID() (id uuid.UUID, exists bool) {
+	if m.workflows != nil {
+		return *m.workflows, true
+	}
+	return
+}
+
+// WorkflowsIDs returns the "workflows" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// WorkflowsID instead. It exists only for internal usage by the builders.
+func (m *WorkflowsMutation) WorkflowsIDs() (ids []uuid.UUID) {
+	if id := m.workflows; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetWorkflows resets all changes to the "workflows" edge.
+func (m *WorkflowsMutation) ResetWorkflows() {
+	m.workflows = nil
+	m.clearedworkflows = false
+}
+
+// Where appends a list predicates to the WorkflowsMutation builder.
+func (m *WorkflowsMutation) Where(ps ...predicate.Workflows) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// Op returns the operation name.
+func (m *WorkflowsMutation) Op() Op {
+	return m.op
+}
+
+// Type returns the node type of this mutation (Workflows).
+func (m *WorkflowsMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *WorkflowsMutation) Fields() []string {
+	fields := make([]string, 0, 6)
+	if m.workflow_id != nil {
+		fields = append(fields, workflows.FieldWorkflowID)
+	}
+	if m.workflow_name != nil {
+		fields = append(fields, workflows.FieldWorkflowName)
+	}
+	if m.badge_url != nil {
+		fields = append(fields, workflows.FieldBadgeURL)
+	}
+	if m.html_url != nil {
+		fields = append(fields, workflows.FieldHTMLURL)
+	}
+	if m.job_url != nil {
+		fields = append(fields, workflows.FieldJobURL)
+	}
+	if m.state != nil {
+		fields = append(fields, workflows.FieldState)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *WorkflowsMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case workflows.FieldWorkflowID:
+		return m.WorkflowID()
+	case workflows.FieldWorkflowName:
+		return m.WorkflowName()
+	case workflows.FieldBadgeURL:
+		return m.BadgeURL()
+	case workflows.FieldHTMLURL:
+		return m.HTMLURL()
+	case workflows.FieldJobURL:
+		return m.JobURL()
+	case workflows.FieldState:
+		return m.State()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *WorkflowsMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case workflows.FieldWorkflowID:
+		return m.OldWorkflowID(ctx)
+	case workflows.FieldWorkflowName:
+		return m.OldWorkflowName(ctx)
+	case workflows.FieldBadgeURL:
+		return m.OldBadgeURL(ctx)
+	case workflows.FieldHTMLURL:
+		return m.OldHTMLURL(ctx)
+	case workflows.FieldJobURL:
+		return m.OldJobURL(ctx)
+	case workflows.FieldState:
+		return m.OldState(ctx)
+	}
+	return nil, fmt.Errorf("unknown Workflows field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *WorkflowsMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case workflows.FieldWorkflowID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWorkflowID(v)
+		return nil
+	case workflows.FieldWorkflowName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWorkflowName(v)
+		return nil
+	case workflows.FieldBadgeURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBadgeURL(v)
+		return nil
+	case workflows.FieldHTMLURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHTMLURL(v)
+		return nil
+	case workflows.FieldJobURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetJobURL(v)
+		return nil
+	case workflows.FieldState:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetState(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Workflows field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *WorkflowsMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *WorkflowsMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *WorkflowsMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Workflows numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *WorkflowsMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *WorkflowsMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *WorkflowsMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown Workflows nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *WorkflowsMutation) ResetField(name string) error {
+	switch name {
+	case workflows.FieldWorkflowID:
+		m.ResetWorkflowID()
+		return nil
+	case workflows.FieldWorkflowName:
+		m.ResetWorkflowName()
+		return nil
+	case workflows.FieldBadgeURL:
+		m.ResetBadgeURL()
+		return nil
+	case workflows.FieldHTMLURL:
+		m.ResetHTMLURL()
+		return nil
+	case workflows.FieldJobURL:
+		m.ResetJobURL()
+		return nil
+	case workflows.FieldState:
+		m.ResetState()
+		return nil
+	}
+	return fmt.Errorf("unknown Workflows field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *WorkflowsMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.workflows != nil {
+		edges = append(edges, workflows.EdgeWorkflows)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *WorkflowsMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case workflows.EdgeWorkflows:
+		if id := m.workflows; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *WorkflowsMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *WorkflowsMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *WorkflowsMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedworkflows {
+		edges = append(edges, workflows.EdgeWorkflows)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *WorkflowsMutation) EdgeCleared(name string) bool {
+	switch name {
+	case workflows.EdgeWorkflows:
+		return m.clearedworkflows
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *WorkflowsMutation) ClearEdge(name string) error {
+	switch name {
+	case workflows.EdgeWorkflows:
+		m.ClearWorkflows()
+		return nil
+	}
+	return fmt.Errorf("unknown Workflows unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *WorkflowsMutation) ResetEdge(name string) error {
+	switch name {
+	case workflows.EdgeWorkflows:
+		m.ResetWorkflows()
+		return nil
+	}
+	return fmt.Errorf("unknown Workflows edge %s", name)
 }

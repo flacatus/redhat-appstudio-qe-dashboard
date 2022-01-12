@@ -33,25 +33,35 @@ func (ccc *CodeCovCreate) SetGitOrganization(s string) *CodeCovCreate {
 	return ccc
 }
 
+// SetCoveragePercentage sets the "coverage_percentage" field.
+func (ccc *CodeCovCreate) SetCoveragePercentage(f float64) *CodeCovCreate {
+	ccc.mutation.SetCoveragePercentage(f)
+	return ccc
+}
+
 // SetID sets the "id" field.
 func (ccc *CodeCovCreate) SetID(u uuid.UUID) *CodeCovCreate {
 	ccc.mutation.SetID(u)
 	return ccc
 }
 
-// AddRepoIDIDs adds the "repo_id" edge to the Repository entity by IDs.
-func (ccc *CodeCovCreate) AddRepoIDIDs(ids ...uuid.UUID) *CodeCovCreate {
-	ccc.mutation.AddRepoIDIDs(ids...)
+// SetCodecovID sets the "codecov" edge to the Repository entity by ID.
+func (ccc *CodeCovCreate) SetCodecovID(id uuid.UUID) *CodeCovCreate {
+	ccc.mutation.SetCodecovID(id)
 	return ccc
 }
 
-// AddRepoID adds the "repo_id" edges to the Repository entity.
-func (ccc *CodeCovCreate) AddRepoID(r ...*Repository) *CodeCovCreate {
-	ids := make([]uuid.UUID, len(r))
-	for i := range r {
-		ids[i] = r[i].ID
+// SetNillableCodecovID sets the "codecov" edge to the Repository entity by ID if the given value is not nil.
+func (ccc *CodeCovCreate) SetNillableCodecovID(id *uuid.UUID) *CodeCovCreate {
+	if id != nil {
+		ccc = ccc.SetCodecovID(*id)
 	}
-	return ccc.AddRepoIDIDs(ids...)
+	return ccc
+}
+
+// SetCodecov sets the "codecov" edge to the Repository entity.
+func (ccc *CodeCovCreate) SetCodecov(r *Repository) *CodeCovCreate {
+	return ccc.SetCodecovID(r.ID)
 }
 
 // Mutation returns the CodeCovMutation object of the builder.
@@ -144,6 +154,9 @@ func (ccc *CodeCovCreate) check() error {
 	if _, ok := ccc.mutation.GitOrganization(); !ok {
 		return &ValidationError{Name: "git_organization", err: errors.New(`db: missing required field "CodeCov.git_organization"`)}
 	}
+	if _, ok := ccc.mutation.CoveragePercentage(); !ok {
+		return &ValidationError{Name: "coverage_percentage", err: errors.New(`db: missing required field "CodeCov.coverage_percentage"`)}
+	}
 	return nil
 }
 
@@ -192,12 +205,20 @@ func (ccc *CodeCovCreate) createSpec() (*CodeCov, *sqlgraph.CreateSpec) {
 		})
 		_node.GitOrganization = value
 	}
-	if nodes := ccc.mutation.RepoIDIDs(); len(nodes) > 0 {
+	if value, ok := ccc.mutation.CoveragePercentage(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: codecov.FieldCoveragePercentage,
+		})
+		_node.CoveragePercentage = value
+	}
+	if nodes := ccc.mutation.CodecovIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   codecov.RepoIDTable,
-			Columns: []string{codecov.RepoIDColumn},
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   codecov.CodecovTable,
+			Columns: []string{codecov.CodecovColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
@@ -209,6 +230,7 @@ func (ccc *CodeCovCreate) createSpec() (*CodeCov, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_node.repository_codecov = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

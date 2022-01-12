@@ -31,8 +31,7 @@ export const Repositories = () => {
   }, [repositories, setRepositories, dispatch])
 
   const rows = state.repositories.map((repo)=> {
-    //type this props...
-    return [{name: repo.git_organization}, {name: repo.repository_name, url: repo.html_url}]
+    return [{name: repo.git_organization}, {name: repo.repository_name, url: repo.git_url}]
   })
 
   return (
@@ -66,7 +65,7 @@ export const Repositories = () => {
                 </Td>
               ))}
               <Td
-                key={`${rowIndex}_5`}
+                key={`${rowIndex}_${row}`}
                 actions={{
                   items: defaultActions
                 }}

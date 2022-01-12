@@ -19,8 +19,30 @@ const (
 	FieldDescription = "description"
 	// FieldGitURL holds the string denoting the git_url field in the database.
 	FieldGitURL = "git_url"
+	// EdgeWorkflows holds the string denoting the workflows edge name in mutations.
+	EdgeWorkflows = "workflows"
+	// EdgeCodecov holds the string denoting the codecov edge name in mutations.
+	EdgeCodecov = "codecov"
+	// WorkflowsFieldID holds the string denoting the ID field of the Workflows.
+	WorkflowsFieldID = "id"
+	// CodeCovFieldID holds the string denoting the ID field of the CodeCov.
+	CodeCovFieldID = "id"
 	// Table holds the table name of the repository in the database.
 	Table = "repositories"
+	// WorkflowsTable is the table that holds the workflows relation/edge.
+	WorkflowsTable = "workflows"
+	// WorkflowsInverseTable is the table name for the Workflows entity.
+	// It exists in this package in order to avoid circular dependency with the "workflows" package.
+	WorkflowsInverseTable = "workflows"
+	// WorkflowsColumn is the table column denoting the workflows relation/edge.
+	WorkflowsColumn = "repository_workflows"
+	// CodecovTable is the table that holds the codecov relation/edge.
+	CodecovTable = "code_covs"
+	// CodecovInverseTable is the table name for the CodeCov entity.
+	// It exists in this package in order to avoid circular dependency with the "codecov" package.
+	CodecovInverseTable = "code_covs"
+	// CodecovColumn is the table column denoting the codecov relation/edge.
+	CodecovColumn = "repository_codecov"
 )
 
 // Columns holds all SQL columns for repository fields.
@@ -32,21 +54,10 @@ var Columns = []string{
 	FieldGitURL,
 }
 
-// ForeignKeys holds the SQL foreign-keys that are owned by the "repositories"
-// table and are not defined as standalone fields in the schema.
-var ForeignKeys = []string{
-	"code_cov_repo_id",
-}
-
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for i := range ForeignKeys {
-		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -60,6 +71,8 @@ var (
 	GitOrganizationValidator func(string) error
 	// DescriptionValidator is a validator for the "description" field. It is called by the builders before save.
 	DescriptionValidator func(string) error
+	// GitURLValidator is a validator for the "git_url" field. It is called by the builders before save.
+	GitURLValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() uuid.UUID
 )

@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/codecov"
 	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/repository"
+	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/workflows"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -32,6 +33,7 @@ func columnChecker(table string) func(string) error {
 	checks := map[string]func(string) bool{
 		codecov.Table:    codecov.ValidColumn,
 		repository.Table: repository.ValidColumn,
+		workflows.Table:  workflows.ValidColumn,
 	}
 	check, ok := checks[table]
 	if !ok {

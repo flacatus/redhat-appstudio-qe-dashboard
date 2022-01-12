@@ -23,16 +23,21 @@ type Storage interface {
 
 	// GET
 	//GetUser(email string) (User, error)
-	//ListUsers() ([]User, error)
+	ListRepositories() ([]Repository, error)
+
+	ListRepositoriesQualityInfo() ([]RepositoryQualityInfo, error)
 
 	// POST
 	CreateRepository(p Repository) (*db.Repository, error)
+
+	CreateWorkflows(p GithubWorkflows, repo_id uuid.UUID) error
 
 	// POST
 	CreateCoverage(p Coverage, repo_id uuid.UUID) error
 
 	// Delete
-	//DeleteUser(email string) error
+	ReCreateWorkflow(workflow GithubWorkflows, repoName string) error
+	UpdateCoverage(codecov Coverage, repoName string) error
 }
 
 // Repository is an github repository info managed by the storage.
@@ -47,10 +52,42 @@ type Repository struct {
 	GitURL string `json:"git_url"`
 }
 
+type RepositoryQualityInfo struct {
+	// RepositoryName identify an github repository
+	RepositoryName string `json:"repository_name"`
+
+	GitOrganization string `json:"git_organization"`
+
+	Description string `json:"description"`
+
+	GitURL string `json:"git_url"`
+
+	//Coverage
+	CI []GithubWorkflows `json:"github_actions"`
+
+	CodeCoverage Coverage `json:"code_coverage"`
+}
+
 // Repository is an github repository info managed by the storage.
 type Coverage struct {
 	// RepositoryName identify an github repository
 	RepositoryName string `json:"repository_name"`
 
 	GitOrganization string `json:"git_organization"`
+
+	CoveragePercentage float64 `json:"coverage_percentage"`
+}
+
+// Repository is an github repository info managed by the storage.
+type GithubWorkflows struct {
+	// RepositoryName identify an github repository
+	WorkflowName string `json:"workflow_name"`
+
+	BadgeURL string `json:"badge_url"`
+
+	HTMLURL string `json:"html_url"`
+
+	JobURL string `json:"job_url"`
+
+	State string `json:"state"`
 }

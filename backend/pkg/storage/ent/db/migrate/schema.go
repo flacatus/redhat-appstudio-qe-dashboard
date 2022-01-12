@@ -13,32 +13,58 @@ var (
 		{Name: "id", Type: field.TypeUUID, Unique: true},
 		{Name: "repository_name", Type: field.TypeString, Size: 2147483647, SchemaType: map[string]string{"postgres": "text"}},
 		{Name: "git_organization", Type: field.TypeString, Size: 2147483647, SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "coverage_percentage", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "decimal"}},
+		{Name: "repository_codecov", Type: field.TypeUUID, Nullable: true},
 	}
 	// CodeCovsTable holds the schema information for the "code_covs" table.
 	CodeCovsTable = &schema.Table{
 		Name:       "code_covs",
 		Columns:    CodeCovsColumns,
 		PrimaryKey: []*schema.Column{CodeCovsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "code_covs_repositories_codecov",
+				Columns:    []*schema.Column{CodeCovsColumns[4]},
+				RefColumns: []*schema.Column{RepositoriesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 	}
 	// RepositoriesColumns holds the columns for the "repositories" table.
 	RepositoriesColumns = []*schema.Column{
 		{Name: "repo_id", Type: field.TypeUUID, Unique: true},
-		{Name: "repository_name", Type: field.TypeString, Size: 2147483647, SchemaType: map[string]string{"postgres": "text"}},
-		{Name: "git_organization", Type: field.TypeString, Unique: true, Size: 2147483647, SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "repository_name", Type: field.TypeString, Unique: true, Size: 2147483647, SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "git_organization", Type: field.TypeString, Size: 2147483647, SchemaType: map[string]string{"postgres": "text"}},
 		{Name: "description", Type: field.TypeString, Size: 2147483647, SchemaType: map[string]string{"postgres": "text"}},
-		{Name: "git_url", Type: field.TypeString, Unique: true, Size: 2147483647, SchemaType: map[string]string{"postgres": "text"}},
-		{Name: "code_cov_repo_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "git_url", Type: field.TypeString, Size: 2147483647, SchemaType: map[string]string{"postgres": "text"}},
 	}
 	// RepositoriesTable holds the schema information for the "repositories" table.
 	RepositoriesTable = &schema.Table{
 		Name:       "repositories",
 		Columns:    RepositoriesColumns,
 		PrimaryKey: []*schema.Column{RepositoriesColumns[0]},
+	}
+	// WorkflowsColumns holds the columns for the "workflows" table.
+	WorkflowsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "workflow_id", Type: field.TypeUUID, Unique: true},
+		{Name: "workflow_name", Type: field.TypeString, Size: 2147483647, SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "badge_url", Type: field.TypeString, Size: 2147483647, SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "html_url", Type: field.TypeString, Size: 2147483647, SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "job_url", Type: field.TypeString, Size: 2147483647, SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "state", Type: field.TypeString, Size: 2147483647, SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "repository_workflows", Type: field.TypeUUID, Nullable: true},
+	}
+	// WorkflowsTable holds the schema information for the "workflows" table.
+	WorkflowsTable = &schema.Table{
+		Name:       "workflows",
+		Columns:    WorkflowsColumns,
+		PrimaryKey: []*schema.Column{WorkflowsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "repositories_code_covs_repo_id",
-				Columns:    []*schema.Column{RepositoriesColumns[5]},
-				RefColumns: []*schema.Column{CodeCovsColumns[0]},
+				Symbol:     "workflows_repositories_workflows",
+				Columns:    []*schema.Column{WorkflowsColumns[7]},
+				RefColumns: []*schema.Column{RepositoriesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
@@ -47,9 +73,11 @@ var (
 	Tables = []*schema.Table{
 		CodeCovsTable,
 		RepositoriesTable,
+		WorkflowsTable,
 	}
 )
 
 func init() {
-	RepositoriesTable.ForeignKeys[0].RefTable = CodeCovsTable
+	CodeCovsTable.ForeignKeys[0].RefTable = RepositoriesTable
+	WorkflowsTable.ForeignKeys[0].RefTable = RepositoriesTable
 }

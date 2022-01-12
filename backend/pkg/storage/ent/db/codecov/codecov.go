@@ -15,19 +15,21 @@ const (
 	FieldRepositoryName = "repository_name"
 	// FieldGitOrganization holds the string denoting the git_organization field in the database.
 	FieldGitOrganization = "git_organization"
-	// EdgeRepoID holds the string denoting the repo_id edge name in mutations.
-	EdgeRepoID = "repo_id"
+	// FieldCoveragePercentage holds the string denoting the coverage_percentage field in the database.
+	FieldCoveragePercentage = "coverage_percentage"
+	// EdgeCodecov holds the string denoting the codecov edge name in mutations.
+	EdgeCodecov = "codecov"
 	// RepositoryFieldID holds the string denoting the ID field of the Repository.
 	RepositoryFieldID = "repo_id"
 	// Table holds the table name of the codecov in the database.
 	Table = "code_covs"
-	// RepoIDTable is the table that holds the repo_id relation/edge.
-	RepoIDTable = "repositories"
-	// RepoIDInverseTable is the table name for the Repository entity.
+	// CodecovTable is the table that holds the codecov relation/edge.
+	CodecovTable = "code_covs"
+	// CodecovInverseTable is the table name for the Repository entity.
 	// It exists in this package in order to avoid circular dependency with the "repository" package.
-	RepoIDInverseTable = "repositories"
-	// RepoIDColumn is the table column denoting the repo_id relation/edge.
-	RepoIDColumn = "code_cov_repo_id"
+	CodecovInverseTable = "repositories"
+	// CodecovColumn is the table column denoting the codecov relation/edge.
+	CodecovColumn = "repository_codecov"
 )
 
 // Columns holds all SQL columns for codecov fields.
@@ -35,12 +37,24 @@ var Columns = []string{
 	FieldID,
 	FieldRepositoryName,
 	FieldGitOrganization,
+	FieldCoveragePercentage,
+}
+
+// ForeignKeys holds the SQL foreign-keys that are owned by the "code_covs"
+// table and are not defined as standalone fields in the schema.
+var ForeignKeys = []string{
+	"repository_codecov",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for i := range ForeignKeys {
+		if column == ForeignKeys[i] {
 			return true
 		}
 	}

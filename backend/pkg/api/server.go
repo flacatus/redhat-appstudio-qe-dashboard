@@ -7,7 +7,8 @@ import (
 	"time"
 
 	"github.com/dgraph-io/ristretto"
-	"github.com/flacatus/qe-dashboard-backend/config"
+	"github.com/flacatus/qe-dashboard-backend/pkg/api/apis/codecov"
+	"github.com/flacatus/qe-dashboard-backend/pkg/api/apis/github"
 	_ "github.com/flacatus/qe-dashboard-backend/pkg/api/docs"
 	"github.com/flacatus/qe-dashboard-backend/pkg/storage"
 	"github.com/gorilla/mux"
@@ -50,11 +51,13 @@ type Config struct {
 }
 
 type Server struct {
-	router  *mux.Router
-	logger  *zap.Logger
-	config  *Config
-	cache   *ristretto.Cache
-	handler http.Handler
+	router     *mux.Router
+	logger     *zap.Logger
+	config     *Config
+	cache      *ristretto.Cache
+	githubAPI  *github.API
+	codecovAPI *codecov.API
+	handler    http.Handler
 }
 
 func NewServer(config *Config, logger *zap.Logger) (*Server, error) {
@@ -63,11 +66,15 @@ func NewServer(config *Config, logger *zap.Logger) (*Server, error) {
 		MaxCost:     1 << 30, // maximum cost of cache (1GB).
 		BufferItems: 64,      // number of keys per Get buffer.
 	})
+	gh := github.NewGitubClient()
+	codecov := codecov.NewCodeCoverageClient()
 	srv := &Server{
-		router: mux.NewRouter(),
-		logger: logger,
-		config: config,
-		cache:  cache,
+		router:     mux.NewRouter(),
+		logger:     logger,
+		config:     config,
+		cache:      cache,
+		githubAPI:  gh,
+		codecovAPI: codecov,
 	}
 
 	return srv, nil
@@ -75,7 +82,8 @@ func NewServer(config *Config, logger *zap.Logger) (*Server, error) {
 
 func (s *Server) registerHandlers() {
 	s.router.HandleFunc("/api/version", s.versionHandler).Methods("GET")
-	s.router.HandleFunc("/api/quality/repositories", s.repositoriesHandler).Methods("GET")
+	s.router.HandleFunc("/api/quality/repositories/get", s.repositoriesHandler).Methods("GET")
+	s.router.HandleFunc("/api/quality/repositories/list", s.listRepositoriesHandler).Methods("GET")
 	s.router.HandleFunc("/api/quality/repositories/create", s.repositoriesCreateHandler).Methods("POST")
 	s.router.PathPrefix("/api/swagger/").Handler(httpSwagger.Handler(
 		httpSwagger.URL("/api/swagger/doc.json"),
@@ -115,12 +123,8 @@ func (s *Server) ListenAndServe(stopCh <-chan struct{}) {
 		s.handler = c.Handler(s.router)
 	}
 
-	cfg := config.GetServerConfiguration()
-
-	s.cache.Set("config", cfg.ConfigSpec, 1)
-
 	str := staticRotationStrategy()
-	s.startUpdateCache(context.TODO(), str, time.Now)
+	s.startUpdateStorage(context.TODO(), str, time.Now)
 	// create the http server
 	srv := s.startServer()
 

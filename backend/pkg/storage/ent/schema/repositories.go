@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 )
@@ -30,21 +31,24 @@ func (Repository) Fields() []ent.Field {
 			Unique(),
 		field.Text("repository_name").
 			SchemaType(textSchema).
-			NotEmpty(),
-		field.Text("git_organization").
-			SchemaType(textSchema).
 			NotEmpty().
 			Unique(),
+		field.Text("git_organization").
+			SchemaType(textSchema).
+			NotEmpty(),
 		field.Text("description").
 			SchemaType(textSchema).
 			NotEmpty(),
 		field.Text("git_url").
 			SchemaType(textSchema).
-			Unique(),
+			NotEmpty(),
 	}
 }
 
 // Edges of the Password.
 func (Repository) Edges() []ent.Edge {
-	return []ent.Edge{}
+	return []ent.Edge{
+		edge.To("workflows", Workflows.Type),
+		edge.To("codecov", CodeCov.Type),
+	}
 }

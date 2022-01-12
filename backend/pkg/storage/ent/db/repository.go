@@ -23,8 +23,39 @@ type Repository struct {
 	// Description holds the value of the "description" field.
 	Description string `json:"description,omitempty"`
 	// GitURL holds the value of the "git_url" field.
-	GitURL           string `json:"git_url,omitempty"`
-	code_cov_repo_id *uuid.UUID
+	GitURL string `json:"git_url,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the RepositoryQuery when eager-loading is set.
+	Edges RepositoryEdges `json:"edges"`
+}
+
+// RepositoryEdges holds the relations/edges for other nodes in the graph.
+type RepositoryEdges struct {
+	// Workflows holds the value of the workflows edge.
+	Workflows []*Workflows `json:"workflows,omitempty"`
+	// Codecov holds the value of the codecov edge.
+	Codecov []*CodeCov `json:"codecov,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [2]bool
+}
+
+// WorkflowsOrErr returns the Workflows value or an error if the edge
+// was not loaded in eager-loading.
+func (e RepositoryEdges) WorkflowsOrErr() ([]*Workflows, error) {
+	if e.loadedTypes[0] {
+		return e.Workflows, nil
+	}
+	return nil, &NotLoadedError{edge: "workflows"}
+}
+
+// CodecovOrErr returns the Codecov value or an error if the edge
+// was not loaded in eager-loading.
+func (e RepositoryEdges) CodecovOrErr() ([]*CodeCov, error) {
+	if e.loadedTypes[1] {
+		return e.Codecov, nil
+	}
+	return nil, &NotLoadedError{edge: "codecov"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -36,8 +67,6 @@ func (*Repository) scanValues(columns []string) ([]interface{}, error) {
 			values[i] = new(sql.NullString)
 		case repository.FieldID:
 			values[i] = new(uuid.UUID)
-		case repository.ForeignKeys[0]: // code_cov_repo_id
-			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type Repository", columns[i])
 		}
@@ -83,16 +112,19 @@ func (r *Repository) assignValues(columns []string, values []interface{}) error 
 			} else if value.Valid {
 				r.GitURL = value.String
 			}
-		case repository.ForeignKeys[0]:
-			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field code_cov_repo_id", values[i])
-			} else if value.Valid {
-				r.code_cov_repo_id = new(uuid.UUID)
-				*r.code_cov_repo_id = *value.S.(*uuid.UUID)
-			}
 		}
 	}
 	return nil
+}
+
+// QueryWorkflows queries the "workflows" edge of the Repository entity.
+func (r *Repository) QueryWorkflows() *WorkflowsQuery {
+	return (&RepositoryClient{config: r.config}).QueryWorkflows(r)
+}
+
+// QueryCodecov queries the "codecov" edge of the Repository entity.
+func (r *Repository) QueryCodecov() *CodeCovQuery {
+	return (&RepositoryClient{config: r.config}).QueryCodecov(r)
 }
 
 // Update returns a builder for updating this Repository.

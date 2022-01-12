@@ -106,6 +106,13 @@ func GitOrganization(v string) predicate.CodeCov {
 	})
 }
 
+// CoveragePercentage applies equality check predicate on the "coverage_percentage" field. It's identical to CoveragePercentageEQ.
+func CoveragePercentage(v float64) predicate.CodeCov {
+	return predicate.CodeCov(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldCoveragePercentage), v))
+	})
+}
+
 // RepositoryNameEQ applies the EQ predicate on the "repository_name" field.
 func RepositoryNameEQ(v string) predicate.CodeCov {
 	return predicate.CodeCov(func(s *sql.Selector) {
@@ -328,25 +335,101 @@ func GitOrganizationContainsFold(v string) predicate.CodeCov {
 	})
 }
 
-// HasRepoID applies the HasEdge predicate on the "repo_id" edge.
-func HasRepoID() predicate.CodeCov {
+// CoveragePercentageEQ applies the EQ predicate on the "coverage_percentage" field.
+func CoveragePercentageEQ(v float64) predicate.CodeCov {
+	return predicate.CodeCov(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldCoveragePercentage), v))
+	})
+}
+
+// CoveragePercentageNEQ applies the NEQ predicate on the "coverage_percentage" field.
+func CoveragePercentageNEQ(v float64) predicate.CodeCov {
+	return predicate.CodeCov(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldCoveragePercentage), v))
+	})
+}
+
+// CoveragePercentageIn applies the In predicate on the "coverage_percentage" field.
+func CoveragePercentageIn(vs ...float64) predicate.CodeCov {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.CodeCov(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.In(s.C(FieldCoveragePercentage), v...))
+	})
+}
+
+// CoveragePercentageNotIn applies the NotIn predicate on the "coverage_percentage" field.
+func CoveragePercentageNotIn(vs ...float64) predicate.CodeCov {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.CodeCov(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.NotIn(s.C(FieldCoveragePercentage), v...))
+	})
+}
+
+// CoveragePercentageGT applies the GT predicate on the "coverage_percentage" field.
+func CoveragePercentageGT(v float64) predicate.CodeCov {
+	return predicate.CodeCov(func(s *sql.Selector) {
+		s.Where(sql.GT(s.C(FieldCoveragePercentage), v))
+	})
+}
+
+// CoveragePercentageGTE applies the GTE predicate on the "coverage_percentage" field.
+func CoveragePercentageGTE(v float64) predicate.CodeCov {
+	return predicate.CodeCov(func(s *sql.Selector) {
+		s.Where(sql.GTE(s.C(FieldCoveragePercentage), v))
+	})
+}
+
+// CoveragePercentageLT applies the LT predicate on the "coverage_percentage" field.
+func CoveragePercentageLT(v float64) predicate.CodeCov {
+	return predicate.CodeCov(func(s *sql.Selector) {
+		s.Where(sql.LT(s.C(FieldCoveragePercentage), v))
+	})
+}
+
+// CoveragePercentageLTE applies the LTE predicate on the "coverage_percentage" field.
+func CoveragePercentageLTE(v float64) predicate.CodeCov {
+	return predicate.CodeCov(func(s *sql.Selector) {
+		s.Where(sql.LTE(s.C(FieldCoveragePercentage), v))
+	})
+}
+
+// HasCodecov applies the HasEdge predicate on the "codecov" edge.
+func HasCodecov() predicate.CodeCov {
 	return predicate.CodeCov(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.To(RepoIDTable, RepositoryFieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, RepoIDTable, RepoIDColumn),
+			sqlgraph.To(CodecovTable, RepositoryFieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, CodecovTable, CodecovColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasRepoIDWith applies the HasEdge predicate on the "repo_id" edge with a given conditions (other predicates).
-func HasRepoIDWith(preds ...predicate.Repository) predicate.CodeCov {
+// HasCodecovWith applies the HasEdge predicate on the "codecov" edge with a given conditions (other predicates).
+func HasCodecovWith(preds ...predicate.Repository) predicate.CodeCov {
 	return predicate.CodeCov(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.To(RepoIDInverseTable, RepositoryFieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, RepoIDTable, RepoIDColumn),
+			sqlgraph.To(CodecovInverseTable, RepositoryFieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, CodecovTable, CodecovColumn),
 		)
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {

@@ -10,8 +10,11 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/codecov"
 	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/predicate"
 	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/repository"
+	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/workflows"
+	"github.com/google/uuid"
 )
 
 // RepositoryUpdate is the builder for updating Repository entities.
@@ -51,9 +54,81 @@ func (ru *RepositoryUpdate) SetGitURL(s string) *RepositoryUpdate {
 	return ru
 }
 
+// AddWorkflowIDs adds the "workflows" edge to the Workflows entity by IDs.
+func (ru *RepositoryUpdate) AddWorkflowIDs(ids ...int) *RepositoryUpdate {
+	ru.mutation.AddWorkflowIDs(ids...)
+	return ru
+}
+
+// AddWorkflows adds the "workflows" edges to the Workflows entity.
+func (ru *RepositoryUpdate) AddWorkflows(w ...*Workflows) *RepositoryUpdate {
+	ids := make([]int, len(w))
+	for i := range w {
+		ids[i] = w[i].ID
+	}
+	return ru.AddWorkflowIDs(ids...)
+}
+
+// AddCodecovIDs adds the "codecov" edge to the CodeCov entity by IDs.
+func (ru *RepositoryUpdate) AddCodecovIDs(ids ...uuid.UUID) *RepositoryUpdate {
+	ru.mutation.AddCodecovIDs(ids...)
+	return ru
+}
+
+// AddCodecov adds the "codecov" edges to the CodeCov entity.
+func (ru *RepositoryUpdate) AddCodecov(c ...*CodeCov) *RepositoryUpdate {
+	ids := make([]uuid.UUID, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return ru.AddCodecovIDs(ids...)
+}
+
 // Mutation returns the RepositoryMutation object of the builder.
 func (ru *RepositoryUpdate) Mutation() *RepositoryMutation {
 	return ru.mutation
+}
+
+// ClearWorkflows clears all "workflows" edges to the Workflows entity.
+func (ru *RepositoryUpdate) ClearWorkflows() *RepositoryUpdate {
+	ru.mutation.ClearWorkflows()
+	return ru
+}
+
+// RemoveWorkflowIDs removes the "workflows" edge to Workflows entities by IDs.
+func (ru *RepositoryUpdate) RemoveWorkflowIDs(ids ...int) *RepositoryUpdate {
+	ru.mutation.RemoveWorkflowIDs(ids...)
+	return ru
+}
+
+// RemoveWorkflows removes "workflows" edges to Workflows entities.
+func (ru *RepositoryUpdate) RemoveWorkflows(w ...*Workflows) *RepositoryUpdate {
+	ids := make([]int, len(w))
+	for i := range w {
+		ids[i] = w[i].ID
+	}
+	return ru.RemoveWorkflowIDs(ids...)
+}
+
+// ClearCodecov clears all "codecov" edges to the CodeCov entity.
+func (ru *RepositoryUpdate) ClearCodecov() *RepositoryUpdate {
+	ru.mutation.ClearCodecov()
+	return ru
+}
+
+// RemoveCodecovIDs removes the "codecov" edge to CodeCov entities by IDs.
+func (ru *RepositoryUpdate) RemoveCodecovIDs(ids ...uuid.UUID) *RepositoryUpdate {
+	ru.mutation.RemoveCodecovIDs(ids...)
+	return ru
+}
+
+// RemoveCodecov removes "codecov" edges to CodeCov entities.
+func (ru *RepositoryUpdate) RemoveCodecov(c ...*CodeCov) *RepositoryUpdate {
+	ids := make([]uuid.UUID, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return ru.RemoveCodecovIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -133,6 +208,11 @@ func (ru *RepositoryUpdate) check() error {
 			return &ValidationError{Name: "description", err: fmt.Errorf(`db: validator failed for field "Repository.description": %w`, err)}
 		}
 	}
+	if v, ok := ru.mutation.GitURL(); ok {
+		if err := repository.GitURLValidator(v); err != nil {
+			return &ValidationError{Name: "git_url", err: fmt.Errorf(`db: validator failed for field "Repository.git_url": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -182,6 +262,114 @@ func (ru *RepositoryUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: repository.FieldGitURL,
 		})
 	}
+	if ru.mutation.WorkflowsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   repository.WorkflowsTable,
+			Columns: []string{repository.WorkflowsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: workflows.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ru.mutation.RemovedWorkflowsIDs(); len(nodes) > 0 && !ru.mutation.WorkflowsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   repository.WorkflowsTable,
+			Columns: []string{repository.WorkflowsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: workflows.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ru.mutation.WorkflowsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   repository.WorkflowsTable,
+			Columns: []string{repository.WorkflowsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: workflows.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if ru.mutation.CodecovCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   repository.CodecovTable,
+			Columns: []string{repository.CodecovColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: codecov.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ru.mutation.RemovedCodecovIDs(); len(nodes) > 0 && !ru.mutation.CodecovCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   repository.CodecovTable,
+			Columns: []string{repository.CodecovColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: codecov.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ru.mutation.CodecovIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   repository.CodecovTable,
+			Columns: []string{repository.CodecovColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: codecov.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, ru.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{repository.Label}
@@ -225,9 +413,81 @@ func (ruo *RepositoryUpdateOne) SetGitURL(s string) *RepositoryUpdateOne {
 	return ruo
 }
 
+// AddWorkflowIDs adds the "workflows" edge to the Workflows entity by IDs.
+func (ruo *RepositoryUpdateOne) AddWorkflowIDs(ids ...int) *RepositoryUpdateOne {
+	ruo.mutation.AddWorkflowIDs(ids...)
+	return ruo
+}
+
+// AddWorkflows adds the "workflows" edges to the Workflows entity.
+func (ruo *RepositoryUpdateOne) AddWorkflows(w ...*Workflows) *RepositoryUpdateOne {
+	ids := make([]int, len(w))
+	for i := range w {
+		ids[i] = w[i].ID
+	}
+	return ruo.AddWorkflowIDs(ids...)
+}
+
+// AddCodecovIDs adds the "codecov" edge to the CodeCov entity by IDs.
+func (ruo *RepositoryUpdateOne) AddCodecovIDs(ids ...uuid.UUID) *RepositoryUpdateOne {
+	ruo.mutation.AddCodecovIDs(ids...)
+	return ruo
+}
+
+// AddCodecov adds the "codecov" edges to the CodeCov entity.
+func (ruo *RepositoryUpdateOne) AddCodecov(c ...*CodeCov) *RepositoryUpdateOne {
+	ids := make([]uuid.UUID, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return ruo.AddCodecovIDs(ids...)
+}
+
 // Mutation returns the RepositoryMutation object of the builder.
 func (ruo *RepositoryUpdateOne) Mutation() *RepositoryMutation {
 	return ruo.mutation
+}
+
+// ClearWorkflows clears all "workflows" edges to the Workflows entity.
+func (ruo *RepositoryUpdateOne) ClearWorkflows() *RepositoryUpdateOne {
+	ruo.mutation.ClearWorkflows()
+	return ruo
+}
+
+// RemoveWorkflowIDs removes the "workflows" edge to Workflows entities by IDs.
+func (ruo *RepositoryUpdateOne) RemoveWorkflowIDs(ids ...int) *RepositoryUpdateOne {
+	ruo.mutation.RemoveWorkflowIDs(ids...)
+	return ruo
+}
+
+// RemoveWorkflows removes "workflows" edges to Workflows entities.
+func (ruo *RepositoryUpdateOne) RemoveWorkflows(w ...*Workflows) *RepositoryUpdateOne {
+	ids := make([]int, len(w))
+	for i := range w {
+		ids[i] = w[i].ID
+	}
+	return ruo.RemoveWorkflowIDs(ids...)
+}
+
+// ClearCodecov clears all "codecov" edges to the CodeCov entity.
+func (ruo *RepositoryUpdateOne) ClearCodecov() *RepositoryUpdateOne {
+	ruo.mutation.ClearCodecov()
+	return ruo
+}
+
+// RemoveCodecovIDs removes the "codecov" edge to CodeCov entities by IDs.
+func (ruo *RepositoryUpdateOne) RemoveCodecovIDs(ids ...uuid.UUID) *RepositoryUpdateOne {
+	ruo.mutation.RemoveCodecovIDs(ids...)
+	return ruo
+}
+
+// RemoveCodecov removes "codecov" edges to CodeCov entities.
+func (ruo *RepositoryUpdateOne) RemoveCodecov(c ...*CodeCov) *RepositoryUpdateOne {
+	ids := make([]uuid.UUID, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return ruo.RemoveCodecovIDs(ids...)
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -314,6 +574,11 @@ func (ruo *RepositoryUpdateOne) check() error {
 			return &ValidationError{Name: "description", err: fmt.Errorf(`db: validator failed for field "Repository.description": %w`, err)}
 		}
 	}
+	if v, ok := ruo.mutation.GitURL(); ok {
+		if err := repository.GitURLValidator(v); err != nil {
+			return &ValidationError{Name: "git_url", err: fmt.Errorf(`db: validator failed for field "Repository.git_url": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -379,6 +644,114 @@ func (ruo *RepositoryUpdateOne) sqlSave(ctx context.Context) (_node *Repository,
 			Value:  value,
 			Column: repository.FieldGitURL,
 		})
+	}
+	if ruo.mutation.WorkflowsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   repository.WorkflowsTable,
+			Columns: []string{repository.WorkflowsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: workflows.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ruo.mutation.RemovedWorkflowsIDs(); len(nodes) > 0 && !ruo.mutation.WorkflowsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   repository.WorkflowsTable,
+			Columns: []string{repository.WorkflowsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: workflows.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ruo.mutation.WorkflowsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   repository.WorkflowsTable,
+			Columns: []string{repository.WorkflowsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: workflows.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if ruo.mutation.CodecovCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   repository.CodecovTable,
+			Columns: []string{repository.CodecovColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: codecov.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ruo.mutation.RemovedCodecovIDs(); len(nodes) > 0 && !ruo.mutation.CodecovCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   repository.CodecovTable,
+			Columns: []string{repository.CodecovColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: codecov.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := ruo.mutation.CodecovIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   repository.CodecovTable,
+			Columns: []string{repository.CodecovColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: codecov.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Repository{config: ruo.config}
 	_spec.Assign = _node.assignValues

@@ -4,7 +4,6 @@ package db
 
 import (
 	"context"
-	"database/sql/driver"
 	"errors"
 	"fmt"
 	"math"
@@ -28,7 +27,8 @@ type CodeCovQuery struct {
 	fields     []string
 	predicates []predicate.CodeCov
 	// eager-loading edges.
-	withRepoID *RepositoryQuery
+	withCodecov *RepositoryQuery
+	withFKs     bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -65,8 +65,8 @@ func (ccq *CodeCovQuery) Order(o ...OrderFunc) *CodeCovQuery {
 	return ccq
 }
 
-// QueryRepoID chains the current query on the "repo_id" edge.
-func (ccq *CodeCovQuery) QueryRepoID() *RepositoryQuery {
+// QueryCodecov chains the current query on the "codecov" edge.
+func (ccq *CodeCovQuery) QueryCodecov() *RepositoryQuery {
 	query := &RepositoryQuery{config: ccq.config}
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := ccq.prepareQuery(ctx); err != nil {
@@ -79,7 +79,7 @@ func (ccq *CodeCovQuery) QueryRepoID() *RepositoryQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(codecov.Table, codecov.FieldID, selector),
 			sqlgraph.To(repository.Table, repository.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, codecov.RepoIDTable, codecov.RepoIDColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, codecov.CodecovTable, codecov.CodecovColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(ccq.driver.Dialect(), step)
 		return fromU, nil
@@ -263,26 +263,26 @@ func (ccq *CodeCovQuery) Clone() *CodeCovQuery {
 		return nil
 	}
 	return &CodeCovQuery{
-		config:     ccq.config,
-		limit:      ccq.limit,
-		offset:     ccq.offset,
-		order:      append([]OrderFunc{}, ccq.order...),
-		predicates: append([]predicate.CodeCov{}, ccq.predicates...),
-		withRepoID: ccq.withRepoID.Clone(),
+		config:      ccq.config,
+		limit:       ccq.limit,
+		offset:      ccq.offset,
+		order:       append([]OrderFunc{}, ccq.order...),
+		predicates:  append([]predicate.CodeCov{}, ccq.predicates...),
+		withCodecov: ccq.withCodecov.Clone(),
 		// clone intermediate query.
 		sql:  ccq.sql.Clone(),
 		path: ccq.path,
 	}
 }
 
-// WithRepoID tells the query-builder to eager-load the nodes that are connected to
-// the "repo_id" edge. The optional arguments are used to configure the query builder of the edge.
-func (ccq *CodeCovQuery) WithRepoID(opts ...func(*RepositoryQuery)) *CodeCovQuery {
+// WithCodecov tells the query-builder to eager-load the nodes that are connected to
+// the "codecov" edge. The optional arguments are used to configure the query builder of the edge.
+func (ccq *CodeCovQuery) WithCodecov(opts ...func(*RepositoryQuery)) *CodeCovQuery {
 	query := &RepositoryQuery{config: ccq.config}
 	for _, opt := range opts {
 		opt(query)
 	}
-	ccq.withRepoID = query
+	ccq.withCodecov = query
 	return ccq
 }
 
@@ -350,11 +350,18 @@ func (ccq *CodeCovQuery) prepareQuery(ctx context.Context) error {
 func (ccq *CodeCovQuery) sqlAll(ctx context.Context) ([]*CodeCov, error) {
 	var (
 		nodes       = []*CodeCov{}
+		withFKs     = ccq.withFKs
 		_spec       = ccq.querySpec()
 		loadedTypes = [1]bool{
-			ccq.withRepoID != nil,
+			ccq.withCodecov != nil,
 		}
 	)
+	if ccq.withCodecov != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, codecov.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
 		node := &CodeCov{config: ccq.config}
 		nodes = append(nodes, node)
@@ -375,32 +382,32 @@ func (ccq *CodeCovQuery) sqlAll(ctx context.Context) ([]*CodeCov, error) {
 		return nodes, nil
 	}
 
-	if query := ccq.withRepoID; query != nil {
-		fks := make([]driver.Value, 0, len(nodes))
-		nodeids := make(map[uuid.UUID]*CodeCov)
+	if query := ccq.withCodecov; query != nil {
+		ids := make([]uuid.UUID, 0, len(nodes))
+		nodeids := make(map[uuid.UUID][]*CodeCov)
 		for i := range nodes {
-			fks = append(fks, nodes[i].ID)
-			nodeids[nodes[i].ID] = nodes[i]
-			nodes[i].Edges.RepoID = []*Repository{}
+			if nodes[i].repository_codecov == nil {
+				continue
+			}
+			fk := *nodes[i].repository_codecov
+			if _, ok := nodeids[fk]; !ok {
+				ids = append(ids, fk)
+			}
+			nodeids[fk] = append(nodeids[fk], nodes[i])
 		}
-		query.withFKs = true
-		query.Where(predicate.Repository(func(s *sql.Selector) {
-			s.Where(sql.InValues(codecov.RepoIDColumn, fks...))
-		}))
+		query.Where(repository.IDIn(ids...))
 		neighbors, err := query.All(ctx)
 		if err != nil {
 			return nil, err
 		}
 		for _, n := range neighbors {
-			fk := n.code_cov_repo_id
-			if fk == nil {
-				return nil, fmt.Errorf(`foreign-key "code_cov_repo_id" is nil for node %v`, n.ID)
-			}
-			node, ok := nodeids[*fk]
+			nodes, ok := nodeids[n.ID]
 			if !ok {
-				return nil, fmt.Errorf(`unexpected foreign-key "code_cov_repo_id" returned %v for node %v`, *fk, n.ID)
+				return nil, fmt.Errorf(`unexpected foreign-key "repository_codecov" returned %v`, n.ID)
 			}
-			node.Edges.RepoID = append(node.Edges.RepoID, n)
+			for i := range nodes {
+				nodes[i].Edges.Codecov = n
+			}
 		}
 	}
 

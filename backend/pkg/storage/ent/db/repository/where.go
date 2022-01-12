@@ -4,6 +4,7 @@ package repository
 
 import (
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/predicate"
 	"github.com/google/uuid"
 )
@@ -560,6 +561,62 @@ func GitURLEqualFold(v string) predicate.Repository {
 func GitURLContainsFold(v string) predicate.Repository {
 	return predicate.Repository(func(s *sql.Selector) {
 		s.Where(sql.ContainsFold(s.C(FieldGitURL), v))
+	})
+}
+
+// HasWorkflows applies the HasEdge predicate on the "workflows" edge.
+func HasWorkflows() predicate.Repository {
+	return predicate.Repository(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(WorkflowsTable, WorkflowsFieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, WorkflowsTable, WorkflowsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasWorkflowsWith applies the HasEdge predicate on the "workflows" edge with a given conditions (other predicates).
+func HasWorkflowsWith(preds ...predicate.Workflows) predicate.Repository {
+	return predicate.Repository(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(WorkflowsInverseTable, WorkflowsFieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, WorkflowsTable, WorkflowsColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCodecov applies the HasEdge predicate on the "codecov" edge.
+func HasCodecov() predicate.Repository {
+	return predicate.Repository(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(CodecovTable, CodeCovFieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, CodecovTable, CodecovColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCodecovWith applies the HasEdge predicate on the "codecov" edge with a given conditions (other predicates).
+func HasCodecovWith(preds ...predicate.CodeCov) predicate.Repository {
+	return predicate.Repository(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(CodecovInverseTable, CodeCovFieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, CodecovTable, CodecovColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
 	})
 }
 

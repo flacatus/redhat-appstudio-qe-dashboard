@@ -5,6 +5,10 @@ import (
 	"encoding/json"
 )
 
+const (
+	UNKNOWN_GIT_DESCRIPTION = "Description is empty"
+)
+
 type GitHubTagResponse struct {
 	RepositoryName     string `json:"name"`
 	RepositoryFullName string `json:"full_name,omitempty"`
@@ -21,7 +25,11 @@ func (c *API) GetRepositoriesInformation(organization string, repo string) (repo
 	}
 	err = json.NewDecoder(response.Body).Decode(&gh)
 	if err != nil {
-		panic(err)
+		return gh, err
+	}
+
+	if gh.Description == "" {
+		gh.Description = UNKNOWN_GIT_DESCRIPTION
 	}
 
 	return gh, nil

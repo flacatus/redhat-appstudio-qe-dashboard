@@ -41,19 +41,36 @@ func (ccu *CodeCovUpdate) SetGitOrganization(s string) *CodeCovUpdate {
 	return ccu
 }
 
-// AddRepoIDIDs adds the "repo_id" edge to the Repository entity by IDs.
-func (ccu *CodeCovUpdate) AddRepoIDIDs(ids ...uuid.UUID) *CodeCovUpdate {
-	ccu.mutation.AddRepoIDIDs(ids...)
+// SetCoveragePercentage sets the "coverage_percentage" field.
+func (ccu *CodeCovUpdate) SetCoveragePercentage(f float64) *CodeCovUpdate {
+	ccu.mutation.ResetCoveragePercentage()
+	ccu.mutation.SetCoveragePercentage(f)
 	return ccu
 }
 
-// AddRepoID adds the "repo_id" edges to the Repository entity.
-func (ccu *CodeCovUpdate) AddRepoID(r ...*Repository) *CodeCovUpdate {
-	ids := make([]uuid.UUID, len(r))
-	for i := range r {
-		ids[i] = r[i].ID
+// AddCoveragePercentage adds f to the "coverage_percentage" field.
+func (ccu *CodeCovUpdate) AddCoveragePercentage(f float64) *CodeCovUpdate {
+	ccu.mutation.AddCoveragePercentage(f)
+	return ccu
+}
+
+// SetCodecovID sets the "codecov" edge to the Repository entity by ID.
+func (ccu *CodeCovUpdate) SetCodecovID(id uuid.UUID) *CodeCovUpdate {
+	ccu.mutation.SetCodecovID(id)
+	return ccu
+}
+
+// SetNillableCodecovID sets the "codecov" edge to the Repository entity by ID if the given value is not nil.
+func (ccu *CodeCovUpdate) SetNillableCodecovID(id *uuid.UUID) *CodeCovUpdate {
+	if id != nil {
+		ccu = ccu.SetCodecovID(*id)
 	}
-	return ccu.AddRepoIDIDs(ids...)
+	return ccu
+}
+
+// SetCodecov sets the "codecov" edge to the Repository entity.
+func (ccu *CodeCovUpdate) SetCodecov(r *Repository) *CodeCovUpdate {
+	return ccu.SetCodecovID(r.ID)
 }
 
 // Mutation returns the CodeCovMutation object of the builder.
@@ -61,25 +78,10 @@ func (ccu *CodeCovUpdate) Mutation() *CodeCovMutation {
 	return ccu.mutation
 }
 
-// ClearRepoID clears all "repo_id" edges to the Repository entity.
-func (ccu *CodeCovUpdate) ClearRepoID() *CodeCovUpdate {
-	ccu.mutation.ClearRepoID()
+// ClearCodecov clears the "codecov" edge to the Repository entity.
+func (ccu *CodeCovUpdate) ClearCodecov() *CodeCovUpdate {
+	ccu.mutation.ClearCodecov()
 	return ccu
-}
-
-// RemoveRepoIDIDs removes the "repo_id" edge to Repository entities by IDs.
-func (ccu *CodeCovUpdate) RemoveRepoIDIDs(ids ...uuid.UUID) *CodeCovUpdate {
-	ccu.mutation.RemoveRepoIDIDs(ids...)
-	return ccu
-}
-
-// RemoveRepoID removes "repo_id" edges to Repository entities.
-func (ccu *CodeCovUpdate) RemoveRepoID(r ...*Repository) *CodeCovUpdate {
-	ids := make([]uuid.UUID, len(r))
-	for i := range r {
-		ids[i] = r[i].ID
-	}
-	return ccu.RemoveRepoIDIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -184,12 +186,26 @@ func (ccu *CodeCovUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: codecov.FieldGitOrganization,
 		})
 	}
-	if ccu.mutation.RepoIDCleared() {
+	if value, ok := ccu.mutation.CoveragePercentage(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: codecov.FieldCoveragePercentage,
+		})
+	}
+	if value, ok := ccu.mutation.AddedCoveragePercentage(); ok {
+		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: codecov.FieldCoveragePercentage,
+		})
+	}
+	if ccu.mutation.CodecovCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   codecov.RepoIDTable,
-			Columns: []string{codecov.RepoIDColumn},
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   codecov.CodecovTable,
+			Columns: []string{codecov.CodecovColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
@@ -200,31 +216,12 @@ func (ccu *CodeCovUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := ccu.mutation.RemovedRepoIDIDs(); len(nodes) > 0 && !ccu.mutation.RepoIDCleared() {
+	if nodes := ccu.mutation.CodecovIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   codecov.RepoIDTable,
-			Columns: []string{codecov.RepoIDColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUUID,
-					Column: repository.FieldID,
-				},
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := ccu.mutation.RepoIDIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   codecov.RepoIDTable,
-			Columns: []string{codecov.RepoIDColumn},
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   codecov.CodecovTable,
+			Columns: []string{codecov.CodecovColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
@@ -269,19 +266,36 @@ func (ccuo *CodeCovUpdateOne) SetGitOrganization(s string) *CodeCovUpdateOne {
 	return ccuo
 }
 
-// AddRepoIDIDs adds the "repo_id" edge to the Repository entity by IDs.
-func (ccuo *CodeCovUpdateOne) AddRepoIDIDs(ids ...uuid.UUID) *CodeCovUpdateOne {
-	ccuo.mutation.AddRepoIDIDs(ids...)
+// SetCoveragePercentage sets the "coverage_percentage" field.
+func (ccuo *CodeCovUpdateOne) SetCoveragePercentage(f float64) *CodeCovUpdateOne {
+	ccuo.mutation.ResetCoveragePercentage()
+	ccuo.mutation.SetCoveragePercentage(f)
 	return ccuo
 }
 
-// AddRepoID adds the "repo_id" edges to the Repository entity.
-func (ccuo *CodeCovUpdateOne) AddRepoID(r ...*Repository) *CodeCovUpdateOne {
-	ids := make([]uuid.UUID, len(r))
-	for i := range r {
-		ids[i] = r[i].ID
+// AddCoveragePercentage adds f to the "coverage_percentage" field.
+func (ccuo *CodeCovUpdateOne) AddCoveragePercentage(f float64) *CodeCovUpdateOne {
+	ccuo.mutation.AddCoveragePercentage(f)
+	return ccuo
+}
+
+// SetCodecovID sets the "codecov" edge to the Repository entity by ID.
+func (ccuo *CodeCovUpdateOne) SetCodecovID(id uuid.UUID) *CodeCovUpdateOne {
+	ccuo.mutation.SetCodecovID(id)
+	return ccuo
+}
+
+// SetNillableCodecovID sets the "codecov" edge to the Repository entity by ID if the given value is not nil.
+func (ccuo *CodeCovUpdateOne) SetNillableCodecovID(id *uuid.UUID) *CodeCovUpdateOne {
+	if id != nil {
+		ccuo = ccuo.SetCodecovID(*id)
 	}
-	return ccuo.AddRepoIDIDs(ids...)
+	return ccuo
+}
+
+// SetCodecov sets the "codecov" edge to the Repository entity.
+func (ccuo *CodeCovUpdateOne) SetCodecov(r *Repository) *CodeCovUpdateOne {
+	return ccuo.SetCodecovID(r.ID)
 }
 
 // Mutation returns the CodeCovMutation object of the builder.
@@ -289,25 +303,10 @@ func (ccuo *CodeCovUpdateOne) Mutation() *CodeCovMutation {
 	return ccuo.mutation
 }
 
-// ClearRepoID clears all "repo_id" edges to the Repository entity.
-func (ccuo *CodeCovUpdateOne) ClearRepoID() *CodeCovUpdateOne {
-	ccuo.mutation.ClearRepoID()
+// ClearCodecov clears the "codecov" edge to the Repository entity.
+func (ccuo *CodeCovUpdateOne) ClearCodecov() *CodeCovUpdateOne {
+	ccuo.mutation.ClearCodecov()
 	return ccuo
-}
-
-// RemoveRepoIDIDs removes the "repo_id" edge to Repository entities by IDs.
-func (ccuo *CodeCovUpdateOne) RemoveRepoIDIDs(ids ...uuid.UUID) *CodeCovUpdateOne {
-	ccuo.mutation.RemoveRepoIDIDs(ids...)
-	return ccuo
-}
-
-// RemoveRepoID removes "repo_id" edges to Repository entities.
-func (ccuo *CodeCovUpdateOne) RemoveRepoID(r ...*Repository) *CodeCovUpdateOne {
-	ids := make([]uuid.UUID, len(r))
-	for i := range r {
-		ids[i] = r[i].ID
-	}
-	return ccuo.RemoveRepoIDIDs(ids...)
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -436,12 +435,26 @@ func (ccuo *CodeCovUpdateOne) sqlSave(ctx context.Context) (_node *CodeCov, err 
 			Column: codecov.FieldGitOrganization,
 		})
 	}
-	if ccuo.mutation.RepoIDCleared() {
+	if value, ok := ccuo.mutation.CoveragePercentage(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: codecov.FieldCoveragePercentage,
+		})
+	}
+	if value, ok := ccuo.mutation.AddedCoveragePercentage(); ok {
+		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: codecov.FieldCoveragePercentage,
+		})
+	}
+	if ccuo.mutation.CodecovCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   codecov.RepoIDTable,
-			Columns: []string{codecov.RepoIDColumn},
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   codecov.CodecovTable,
+			Columns: []string{codecov.CodecovColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
@@ -452,31 +465,12 @@ func (ccuo *CodeCovUpdateOne) sqlSave(ctx context.Context) (_node *CodeCov, err 
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := ccuo.mutation.RemovedRepoIDIDs(); len(nodes) > 0 && !ccuo.mutation.RepoIDCleared() {
+	if nodes := ccuo.mutation.CodecovIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   codecov.RepoIDTable,
-			Columns: []string{codecov.RepoIDColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUUID,
-					Column: repository.FieldID,
-				},
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := ccuo.mutation.RepoIDIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   codecov.RepoIDTable,
-			Columns: []string{codecov.RepoIDColumn},
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   codecov.CodecovTable,
+			Columns: []string{codecov.CodecovColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{

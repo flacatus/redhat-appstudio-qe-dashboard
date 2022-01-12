@@ -23,7 +23,7 @@ async function getVersion(){
 
 async function getRepositories(){
     const result: ApiResponse = { code: 0, data: {} };
-    const subPath ='/api/quality/repositories';
+    const subPath ='/api/quality/repositories/list';
     const uri = API_URL + subPath;
     await axios.get(uri, {
       }).then((res: AxiosResponse) => {

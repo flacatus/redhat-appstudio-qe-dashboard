@@ -26,6 +26,7 @@ type config struct {
 type hooks struct {
 	CodeCov    []ent.Hook
 	Repository []ent.Hook
+	Workflows  []ent.Hook
 }
 
 // Options applies the options on the config object.

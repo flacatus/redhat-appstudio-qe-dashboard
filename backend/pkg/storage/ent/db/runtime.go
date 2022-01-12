@@ -5,6 +5,7 @@ package db
 import (
 	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/codecov"
 	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/repository"
+	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/workflows"
 	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/schema"
 	"github.com/google/uuid"
 )
@@ -37,8 +38,22 @@ func init() {
 	repositoryDescDescription := repositoryFields[3].Descriptor()
 	// repository.DescriptionValidator is a validator for the "description" field. It is called by the builders before save.
 	repository.DescriptionValidator = repositoryDescDescription.Validators[0].(func(string) error)
+	// repositoryDescGitURL is the schema descriptor for git_url field.
+	repositoryDescGitURL := repositoryFields[4].Descriptor()
+	// repository.GitURLValidator is a validator for the "git_url" field. It is called by the builders before save.
+	repository.GitURLValidator = repositoryDescGitURL.Validators[0].(func(string) error)
 	// repositoryDescID is the schema descriptor for id field.
 	repositoryDescID := repositoryFields[0].Descriptor()
 	// repository.DefaultID holds the default value on creation for the id field.
 	repository.DefaultID = repositoryDescID.Default.(func() uuid.UUID)
+	workflowsFields := schema.Workflows{}.Fields()
+	_ = workflowsFields
+	// workflowsDescWorkflowID is the schema descriptor for workflow_id field.
+	workflowsDescWorkflowID := workflowsFields[0].Descriptor()
+	// workflows.DefaultWorkflowID holds the default value on creation for the workflow_id field.
+	workflows.DefaultWorkflowID = workflowsDescWorkflowID.Default.(func() uuid.UUID)
+	// workflowsDescWorkflowName is the schema descriptor for workflow_name field.
+	workflowsDescWorkflowName := workflowsFields[1].Descriptor()
+	// workflows.WorkflowNameValidator is a validator for the "workflow_name" field. It is called by the builders before save.
+	workflows.WorkflowNameValidator = workflowsDescWorkflowName.Validators[0].(func(string) error)
 }

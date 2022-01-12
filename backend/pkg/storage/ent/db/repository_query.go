@@ -4,6 +4,7 @@ package db
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"math"
@@ -11,8 +12,10 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/codecov"
 	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/predicate"
 	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/repository"
+	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/workflows"
 	"github.com/google/uuid"
 )
 
@@ -25,7 +28,9 @@ type RepositoryQuery struct {
 	order      []OrderFunc
 	fields     []string
 	predicates []predicate.Repository
-	withFKs    bool
+	// eager-loading edges.
+	withWorkflows *WorkflowsQuery
+	withCodecov   *CodeCovQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -60,6 +65,50 @@ func (rq *RepositoryQuery) Unique(unique bool) *RepositoryQuery {
 func (rq *RepositoryQuery) Order(o ...OrderFunc) *RepositoryQuery {
 	rq.order = append(rq.order, o...)
 	return rq
+}
+
+// QueryWorkflows chains the current query on the "workflows" edge.
+func (rq *RepositoryQuery) QueryWorkflows() *WorkflowsQuery {
+	query := &WorkflowsQuery{config: rq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := rq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := rq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(repository.Table, repository.FieldID, selector),
+			sqlgraph.To(workflows.Table, workflows.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, repository.WorkflowsTable, repository.WorkflowsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(rq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCodecov chains the current query on the "codecov" edge.
+func (rq *RepositoryQuery) QueryCodecov() *CodeCovQuery {
+	query := &CodeCovQuery{config: rq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := rq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := rq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(repository.Table, repository.FieldID, selector),
+			sqlgraph.To(codecov.Table, codecov.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, repository.CodecovTable, repository.CodecovColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(rq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Repository entity from the query.
@@ -238,15 +287,39 @@ func (rq *RepositoryQuery) Clone() *RepositoryQuery {
 		return nil
 	}
 	return &RepositoryQuery{
-		config:     rq.config,
-		limit:      rq.limit,
-		offset:     rq.offset,
-		order:      append([]OrderFunc{}, rq.order...),
-		predicates: append([]predicate.Repository{}, rq.predicates...),
+		config:        rq.config,
+		limit:         rq.limit,
+		offset:        rq.offset,
+		order:         append([]OrderFunc{}, rq.order...),
+		predicates:    append([]predicate.Repository{}, rq.predicates...),
+		withWorkflows: rq.withWorkflows.Clone(),
+		withCodecov:   rq.withCodecov.Clone(),
 		// clone intermediate query.
 		sql:  rq.sql.Clone(),
 		path: rq.path,
 	}
+}
+
+// WithWorkflows tells the query-builder to eager-load the nodes that are connected to
+// the "workflows" edge. The optional arguments are used to configure the query builder of the edge.
+func (rq *RepositoryQuery) WithWorkflows(opts ...func(*WorkflowsQuery)) *RepositoryQuery {
+	query := &WorkflowsQuery{config: rq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	rq.withWorkflows = query
+	return rq
+}
+
+// WithCodecov tells the query-builder to eager-load the nodes that are connected to
+// the "codecov" edge. The optional arguments are used to configure the query builder of the edge.
+func (rq *RepositoryQuery) WithCodecov(opts ...func(*CodeCovQuery)) *RepositoryQuery {
+	query := &CodeCovQuery{config: rq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	rq.withCodecov = query
+	return rq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -312,13 +385,13 @@ func (rq *RepositoryQuery) prepareQuery(ctx context.Context) error {
 
 func (rq *RepositoryQuery) sqlAll(ctx context.Context) ([]*Repository, error) {
 	var (
-		nodes   = []*Repository{}
-		withFKs = rq.withFKs
-		_spec   = rq.querySpec()
+		nodes       = []*Repository{}
+		_spec       = rq.querySpec()
+		loadedTypes = [2]bool{
+			rq.withWorkflows != nil,
+			rq.withCodecov != nil,
+		}
 	)
-	if withFKs {
-		_spec.Node.Columns = append(_spec.Node.Columns, repository.ForeignKeys...)
-	}
 	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
 		node := &Repository{config: rq.config}
 		nodes = append(nodes, node)
@@ -329,6 +402,7 @@ func (rq *RepositoryQuery) sqlAll(ctx context.Context) ([]*Repository, error) {
 			return fmt.Errorf("db: Assign called without calling ScanValues")
 		}
 		node := nodes[len(nodes)-1]
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if err := sqlgraph.QueryNodes(ctx, rq.driver, _spec); err != nil {
@@ -337,6 +411,65 @@ func (rq *RepositoryQuery) sqlAll(ctx context.Context) ([]*Repository, error) {
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+
+	if query := rq.withWorkflows; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		nodeids := make(map[uuid.UUID]*Repository)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+			nodes[i].Edges.Workflows = []*Workflows{}
+		}
+		query.withFKs = true
+		query.Where(predicate.Workflows(func(s *sql.Selector) {
+			s.Where(sql.InValues(repository.WorkflowsColumn, fks...))
+		}))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			fk := n.repository_workflows
+			if fk == nil {
+				return nil, fmt.Errorf(`foreign-key "repository_workflows" is nil for node %v`, n.ID)
+			}
+			node, ok := nodeids[*fk]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "repository_workflows" returned %v for node %v`, *fk, n.ID)
+			}
+			node.Edges.Workflows = append(node.Edges.Workflows, n)
+		}
+	}
+
+	if query := rq.withCodecov; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		nodeids := make(map[uuid.UUID]*Repository)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+			nodes[i].Edges.Codecov = []*CodeCov{}
+		}
+		query.withFKs = true
+		query.Where(predicate.CodeCov(func(s *sql.Selector) {
+			s.Where(sql.InValues(repository.CodecovColumn, fks...))
+		}))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			fk := n.repository_codecov
+			if fk == nil {
+				return nil, fmt.Errorf(`foreign-key "repository_codecov" is nil for node %v`, n.ID)
+			}
+			node, ok := nodeids[*fk]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "repository_codecov" returned %v for node %v`, *fk, n.ID)
+			}
+			node.Edges.Codecov = append(node.Edges.Codecov, n)
+		}
+	}
+
 	return nodes, nil
 }
 

@@ -16,6 +16,8 @@ type Tx struct {
 	CodeCov *CodeCovClient
 	// Repository is the client for interacting with the Repository builders.
 	Repository *RepositoryClient
+	// Workflows is the client for interacting with the Workflows builders.
+	Workflows *WorkflowsClient
 
 	// lazily loaded.
 	client     *Client
@@ -153,6 +155,7 @@ func (tx *Tx) Client() *Client {
 func (tx *Tx) init() {
 	tx.CodeCov = NewCodeCovClient(tx.config)
 	tx.Repository = NewRepositoryClient(tx.config)
+	tx.Workflows = NewWorkflowsClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

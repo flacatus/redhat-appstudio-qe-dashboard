@@ -12,6 +12,7 @@ import (
 
 	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/codecov"
 	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/repository"
+	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/workflows"
 
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
@@ -27,6 +28,8 @@ type Client struct {
 	CodeCov *CodeCovClient
 	// Repository is the client for interacting with the Repository builders.
 	Repository *RepositoryClient
+	// Workflows is the client for interacting with the Workflows builders.
+	Workflows *WorkflowsClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -42,6 +45,7 @@ func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.CodeCov = NewCodeCovClient(c.config)
 	c.Repository = NewRepositoryClient(c.config)
+	c.Workflows = NewWorkflowsClient(c.config)
 }
 
 // Open opens a database/sql.DB specified by the driver name and
@@ -77,6 +81,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		config:     cfg,
 		CodeCov:    NewCodeCovClient(cfg),
 		Repository: NewRepositoryClient(cfg),
+		Workflows:  NewWorkflowsClient(cfg),
 	}, nil
 }
 
@@ -97,6 +102,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		config:     cfg,
 		CodeCov:    NewCodeCovClient(cfg),
 		Repository: NewRepositoryClient(cfg),
+		Workflows:  NewWorkflowsClient(cfg),
 	}, nil
 }
 
@@ -128,6 +134,7 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	c.CodeCov.Use(hooks...)
 	c.Repository.Use(hooks...)
+	c.Workflows.Use(hooks...)
 }
 
 // CodeCovClient is a client for the CodeCov schema.
@@ -215,15 +222,15 @@ func (c *CodeCovClient) GetX(ctx context.Context, id uuid.UUID) *CodeCov {
 	return obj
 }
 
-// QueryRepoID queries the repo_id edge of a CodeCov.
-func (c *CodeCovClient) QueryRepoID(cc *CodeCov) *RepositoryQuery {
+// QueryCodecov queries the codecov edge of a CodeCov.
+func (c *CodeCovClient) QueryCodecov(cc *CodeCov) *RepositoryQuery {
 	query := &RepositoryQuery{config: c.config}
 	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
 		id := cc.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(codecov.Table, codecov.FieldID, id),
 			sqlgraph.To(repository.Table, repository.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, codecov.RepoIDTable, codecov.RepoIDColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, codecov.CodecovTable, codecov.CodecovColumn),
 		)
 		fromV = sqlgraph.Neighbors(cc.driver.Dialect(), step)
 		return fromV, nil
@@ -321,7 +328,145 @@ func (c *RepositoryClient) GetX(ctx context.Context, id uuid.UUID) *Repository {
 	return obj
 }
 
+// QueryWorkflows queries the workflows edge of a Repository.
+func (c *RepositoryClient) QueryWorkflows(r *Repository) *WorkflowsQuery {
+	query := &WorkflowsQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := r.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(repository.Table, repository.FieldID, id),
+			sqlgraph.To(workflows.Table, workflows.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, repository.WorkflowsTable, repository.WorkflowsColumn),
+		)
+		fromV = sqlgraph.Neighbors(r.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCodecov queries the codecov edge of a Repository.
+func (c *RepositoryClient) QueryCodecov(r *Repository) *CodeCovQuery {
+	query := &CodeCovQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := r.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(repository.Table, repository.FieldID, id),
+			sqlgraph.To(codecov.Table, codecov.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, repository.CodecovTable, repository.CodecovColumn),
+		)
+		fromV = sqlgraph.Neighbors(r.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *RepositoryClient) Hooks() []Hook {
 	return c.hooks.Repository
+}
+
+// WorkflowsClient is a client for the Workflows schema.
+type WorkflowsClient struct {
+	config
+}
+
+// NewWorkflowsClient returns a client for the Workflows from the given config.
+func NewWorkflowsClient(c config) *WorkflowsClient {
+	return &WorkflowsClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `workflows.Hooks(f(g(h())))`.
+func (c *WorkflowsClient) Use(hooks ...Hook) {
+	c.hooks.Workflows = append(c.hooks.Workflows, hooks...)
+}
+
+// Create returns a create builder for Workflows.
+func (c *WorkflowsClient) Create() *WorkflowsCreate {
+	mutation := newWorkflowsMutation(c.config, OpCreate)
+	return &WorkflowsCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Workflows entities.
+func (c *WorkflowsClient) CreateBulk(builders ...*WorkflowsCreate) *WorkflowsCreateBulk {
+	return &WorkflowsCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Workflows.
+func (c *WorkflowsClient) Update() *WorkflowsUpdate {
+	mutation := newWorkflowsMutation(c.config, OpUpdate)
+	return &WorkflowsUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *WorkflowsClient) UpdateOne(w *Workflows) *WorkflowsUpdateOne {
+	mutation := newWorkflowsMutation(c.config, OpUpdateOne, withWorkflows(w))
+	return &WorkflowsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *WorkflowsClient) UpdateOneID(id int) *WorkflowsUpdateOne {
+	mutation := newWorkflowsMutation(c.config, OpUpdateOne, withWorkflowsID(id))
+	return &WorkflowsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Workflows.
+func (c *WorkflowsClient) Delete() *WorkflowsDelete {
+	mutation := newWorkflowsMutation(c.config, OpDelete)
+	return &WorkflowsDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *WorkflowsClient) DeleteOne(w *Workflows) *WorkflowsDeleteOne {
+	return c.DeleteOneID(w.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *WorkflowsClient) DeleteOneID(id int) *WorkflowsDeleteOne {
+	builder := c.Delete().Where(workflows.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &WorkflowsDeleteOne{builder}
+}
+
+// Query returns a query builder for Workflows.
+func (c *WorkflowsClient) Query() *WorkflowsQuery {
+	return &WorkflowsQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a Workflows entity by its id.
+func (c *WorkflowsClient) Get(ctx context.Context, id int) (*Workflows, error) {
+	return c.Query().Where(workflows.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *WorkflowsClient) GetX(ctx context.Context, id int) *Workflows {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryWorkflows queries the workflows edge of a Workflows.
+func (c *WorkflowsClient) QueryWorkflows(w *Workflows) *RepositoryQuery {
+	query := &RepositoryQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := w.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(workflows.Table, workflows.FieldID, id),
+			sqlgraph.To(repository.Table, repository.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, workflows.WorkflowsTable, workflows.WorkflowsColumn),
+		)
+		fromV = sqlgraph.Neighbors(w.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *WorkflowsClient) Hooks() []Hook {
+	return c.hooks.Workflows
 }

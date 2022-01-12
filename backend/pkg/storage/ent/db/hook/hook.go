@@ -35,6 +35,19 @@ func (f RepositoryFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, er
 	return f(ctx, mv)
 }
 
+// The WorkflowsFunc type is an adapter to allow the use of ordinary
+// function as Workflows mutator.
+type WorkflowsFunc func(context.Context, *db.WorkflowsMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f WorkflowsFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	mv, ok := m.(*db.WorkflowsMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *db.WorkflowsMutation", m)
+	}
+	return f(ctx, mv)
+}
+
 // Condition is a hook condition function.
 type Condition func(context.Context, db.Mutation) bool
 

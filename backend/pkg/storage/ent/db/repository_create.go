@@ -9,7 +9,9 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/codecov"
 	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/repository"
+	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/workflows"
 	"github.com/google/uuid"
 )
 
@@ -48,6 +50,36 @@ func (rc *RepositoryCreate) SetGitURL(s string) *RepositoryCreate {
 func (rc *RepositoryCreate) SetID(u uuid.UUID) *RepositoryCreate {
 	rc.mutation.SetID(u)
 	return rc
+}
+
+// AddWorkflowIDs adds the "workflows" edge to the Workflows entity by IDs.
+func (rc *RepositoryCreate) AddWorkflowIDs(ids ...int) *RepositoryCreate {
+	rc.mutation.AddWorkflowIDs(ids...)
+	return rc
+}
+
+// AddWorkflows adds the "workflows" edges to the Workflows entity.
+func (rc *RepositoryCreate) AddWorkflows(w ...*Workflows) *RepositoryCreate {
+	ids := make([]int, len(w))
+	for i := range w {
+		ids[i] = w[i].ID
+	}
+	return rc.AddWorkflowIDs(ids...)
+}
+
+// AddCodecovIDs adds the "codecov" edge to the CodeCov entity by IDs.
+func (rc *RepositoryCreate) AddCodecovIDs(ids ...uuid.UUID) *RepositoryCreate {
+	rc.mutation.AddCodecovIDs(ids...)
+	return rc
+}
+
+// AddCodecov adds the "codecov" edges to the CodeCov entity.
+func (rc *RepositoryCreate) AddCodecov(c ...*CodeCov) *RepositoryCreate {
+	ids := make([]uuid.UUID, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return rc.AddCodecovIDs(ids...)
 }
 
 // Mutation returns the RepositoryMutation object of the builder.
@@ -156,6 +188,11 @@ func (rc *RepositoryCreate) check() error {
 	if _, ok := rc.mutation.GitURL(); !ok {
 		return &ValidationError{Name: "git_url", err: errors.New(`db: missing required field "Repository.git_url"`)}
 	}
+	if v, ok := rc.mutation.GitURL(); ok {
+		if err := repository.GitURLValidator(v); err != nil {
+			return &ValidationError{Name: "git_url", err: fmt.Errorf(`db: validator failed for field "Repository.git_url": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -219,6 +256,44 @@ func (rc *RepositoryCreate) createSpec() (*Repository, *sqlgraph.CreateSpec) {
 			Column: repository.FieldGitURL,
 		})
 		_node.GitURL = value
+	}
+	if nodes := rc.mutation.WorkflowsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   repository.WorkflowsTable,
+			Columns: []string{repository.WorkflowsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: workflows.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := rc.mutation.CodecovIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   repository.CodecovTable,
+			Columns: []string{repository.CodecovColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: codecov.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }
