@@ -50,3 +50,21 @@ func (d *Database) ReCreateWorkflow(workflow storage.GithubWorkflows, repoName s
 	}
 	return nil
 }
+
+func (d *Database) ListWorkflowsByRepository(repositoryName string) (w []storage.GithubWorkflows, err error) {
+	repositories, err := d.client.Repository.Query().All(context.TODO())
+	if err != nil {
+		return nil, convertDBError("list repositories: %w", err)
+	}
+
+	storageWorkflows := make([]storage.GithubWorkflows, 0, len(repositories))
+	for _, p := range repositories {
+		if p.RepositoryName == repositoryName {
+			w, _ := d.client.Repository.QueryWorkflows(p).All(context.TODO())
+			for _, workflow := range w {
+				storageWorkflows = append(storageWorkflows, toStorageWorkflows(workflow))
+			}
+		}
+	}
+	return storageWorkflows, err
+}

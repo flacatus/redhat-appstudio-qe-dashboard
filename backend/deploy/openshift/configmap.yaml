@@ -1,46 +1,13 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: quality-backend-configmap
+  name: postgres-config
   namespace: appstudio-qe
+  labels:
+    app.kubernetes.io/component: quality-backend
+    app.kubernetes.io/instance: quality-dashboard
+    app.kubernetes.io/name: quality-dashboard
 data:
-  backend.properties: |
-    name: 'redhat-appstudio'
-    spec:
-      git:
-        - gitOrganization: 'redhat-appstudio'
-          repoName: 'service-provider-integration-operator'
-          jobs:
-            actions:
-              monitor: true
-            openshiftCI:
-              monitor: true
-          artifacts:
-            - containerName: 'controller:next'
-              containerUrl : 'quay.io/flacatus/pene:next'
-          coverage:
-            monitor: true
-        - gitOrganization: 'che-incubator'
-          repoName: 'chectl'
-          jobs:
-            actions:
-              monitor: true
-            openshiftCI:
-              monitor: true
-          artifacts:
-            - containerName: 'controller:next'
-              containerUrl : 'quay.io/flacatus/pene:next'
-          coverage:
-            monitor: true
-        - gitOrganization: 'openshift-pipelines'
-          repoName: 'pipelines-as-code'
-          jobs:
-            actions:
-              monitor: true
-            openshiftCI:
-              monitor: true
-          artifacts:
-            - containerName: 'controller:next'
-              containerUrl : 'quay.io/flacatus/pene:next'
-          coverage:
-            monitor: true
+  POSTGRES_DB: postgres
+  POSTGRES_USER: admin
+  POSTGRES_PASSWORD: test123

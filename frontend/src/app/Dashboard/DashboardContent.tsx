@@ -15,7 +15,6 @@ export const DashboardContent = () => {
     getRepositories().then((res) => {
       if(res.code === 200){
           const result = res.data;
-          console.log(result)
           dispatch({ type: "SET_REPOSITORIES", data: result });
       } else {
           dispatch({ type: "SET_ERROR", data: res });

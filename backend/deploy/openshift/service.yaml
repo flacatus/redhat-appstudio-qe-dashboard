@@ -21,3 +21,17 @@ spec:
     app.kubernetes.io/component: quality-backend
     app.kubernetes.io/instance: quality-dashboard
     app.kubernetes.io/name: quality-dashboard
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  namespace: appstudio-qe
+  labels:
+    app: postgres
+spec:
+  type: NodePort
+  ports:
+   - port: 5432
+  selector:
+   app: postgres

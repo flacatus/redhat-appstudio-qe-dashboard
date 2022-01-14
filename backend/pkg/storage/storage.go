@@ -24,7 +24,7 @@ type Storage interface {
 	// GET
 	//GetUser(email string) (User, error)
 	ListRepositories() ([]Repository, error)
-
+	ListWorkflowsByRepository(repositoryName string) (w []GithubWorkflows, err error)
 	ListRepositoriesQualityInfo() ([]RepositoryQualityInfo, error)
 
 	// POST
@@ -38,6 +38,7 @@ type Storage interface {
 	// Delete
 	ReCreateWorkflow(workflow GithubWorkflows, repoName string) error
 	UpdateCoverage(codecov Coverage, repoName string) error
+	DeleteRepository(repositoryName string, gitOrganizationName string) error
 }
 
 // Repository is an github repository info managed by the storage.

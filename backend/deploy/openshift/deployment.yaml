@@ -37,8 +37,14 @@ spec:
           name: quality-backend-dashboard
           command: ["/root/qe-dashboard-backend"]
           env:
+            - name: POSTGRES_ENT_HOST
+              value: postgres-service
+            - name: POSTGRES_ENT_PASSWORD
+              value: "test123"
+            - name: POSTGRES_ENT_USER
+              value: "admin"
             - name: GITHUB_TOKEN
-              value: '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'
+              value: "ADDD"
           args:
             - "--config-file=/config/backend.properties"
             - "--port=8080"
@@ -50,20 +56,7 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
-          imagePullPolicy: IfNotPresent
-          volumeMounts:
-          - name: config
-            mountPath: "/config"
-            readOnly: true
+          imagePullPolicy: Always
           image: >-
             quay.io/flacatus/dashboard-backend:next
-      volumes:
-        # You set volumes at the Pod level, then mount them into containers inside that Pod
-        - name: config
-          configMap:
-            # Provide the name of the ConfigMap you want to mount.
-            name: quality-backend-configmap
-            # An array of keys from the ConfigMap to create as files
-            items:
-            - key: "backend.properties"
-              path: "backend.properties"
+

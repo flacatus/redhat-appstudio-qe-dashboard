@@ -78,13 +78,15 @@ func NewServer(config *Config, logger *zap.Logger) (*Server, error) {
 	}
 
 	return srv, nil
-}
+} //deleteRepositoryHandler
 
 func (s *Server) registerHandlers() {
 	s.router.HandleFunc("/api/version", s.versionHandler).Methods("GET")
 	s.router.HandleFunc("/api/quality/repositories/get", s.repositoriesHandler).Methods("GET")
+	s.router.HandleFunc("/api/quality/workflows/get", s.listWorkflowsHandler).Methods("GET")
 	s.router.HandleFunc("/api/quality/repositories/list", s.listRepositoriesHandler).Methods("GET")
 	s.router.HandleFunc("/api/quality/repositories/create", s.repositoriesCreateHandler).Methods("POST")
+	s.router.HandleFunc("/api/quality/repositories/delete", s.deleteRepositoryHandler).Methods("DELETE")
 	s.router.PathPrefix("/api/swagger/").Handler(httpSwagger.Handler(
 		httpSwagger.URL("/api/swagger/doc.json"),
 	))
@@ -113,6 +115,7 @@ func (s *Server) ListenAndServe(stopCh <-chan struct{}) {
 	c := cors.New(cors.Options{
 		AllowedOrigins:   make([]string, 0),
 		AllowCredentials: true,
+		AllowedMethods:   []string{"POST", "GET", "DELETE"},
 		// Enable Debugging for testing, consider disabling in production
 		Debug: true,
 	})

@@ -5,6 +5,7 @@ export interface StateContext {
     alerts: [];
     version: string;
     repositories: []
+    workflows: []
 }
 
 const Reducer = (state, action) => {
@@ -19,11 +20,16 @@ const Reducer = (state, action) => {
                 ...state,
                 version: action.data
             };
-            case 'SET_REPOSITORIES':
-                return {
-                    ...state,
-                    repositories: action.data
-                };
+        case 'SET_REPOSITORIES':
+            return {
+                ...state,
+                repositories: action.data
+            };
+        case 'SET_WORKFLOWS':
+            return {
+                ...state,
+                workflows: action.data
+            };
         case 'SET_ERROR':
             return {
                 ...state,

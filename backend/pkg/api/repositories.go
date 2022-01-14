@@ -2,10 +2,16 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/flacatus/qe-dashboard-backend/pkg/storage"
 )
+
+type RepositoryDeleteRequest struct {
+	GitOrganization string `json:"git_organization"`
+	GitRepository   string `json:"repository_name"`
+}
 
 // Version godoc
 // @Summary Quality Repositories
@@ -29,7 +35,8 @@ func (s *Server) repositoriesHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) repositoriesCreateHandler(w http.ResponseWriter, r *http.Request) {
 	var repository GitRepositoryRequest
 	json.NewDecoder(r.Body).Decode(&repository)
-
+	fmt.Println(repository.GitOrganization)
+	fmt.Println(repository.GitRepository)
 	repoInfo, err := s.githubAPI.GetRepositoriesInformation(repository.GitOrganization, repository.GitRepository)
 	if err != nil {
 		s.logger.Sugar().Errorf("Failed to save repository %v", err)
@@ -107,4 +114,43 @@ func (s *Server) listRepositoriesHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	s.JSONResponse(w, r, repos)
+}
+
+// Version godoc
+// @Summary Quality Repositories
+// @Description returns all repository information founded in server configuration
+// @Tags HTTP API
+// @Produce json
+// @Router /api/quality/repositories [get]
+// @Success 200
+func (s *Server) listWorkflowsHandler(w http.ResponseWriter, r *http.Request) {
+	repositoryName := r.URL.Query()["repository_name"]
+	workflows, err := s.config.Storage.ListWorkflowsByRepository(repositoryName[0])
+	if err != nil {
+		s.ErrorResponse(w, r, "Failed to get repositories", 500)
+		return
+	}
+	s.JSONResponse(w, r, workflows)
+}
+
+func (s *Server) deleteRepositoryHandler(w http.ResponseWriter, r *http.Request) {
+	var repository RepositoryDeleteRequest
+	json.NewDecoder(r.Body).Decode(&repository)
+	if repository.GitRepository == "" {
+		s.ErrorResponse(w, r, "Failed to remove repository. Field 'repository_name' missing", 400)
+		return
+	}
+	if repository.GitOrganization == "" {
+		s.ErrorResponse(w, r, "Failed to remove repository. Field 'git_organization' missing", 400)
+		return
+	}
+	err := s.config.Storage.DeleteRepository(repository.GitRepository, repository.GitOrganization)
+	if err != nil {
+		s.ErrorResponse(w, r, "Failed to remove repository", 400)
+		return
+	}
+
+	s.JSONResponse(w, r, SuccessResponse{
+		Message: "Repository deleted",
+	})
 }

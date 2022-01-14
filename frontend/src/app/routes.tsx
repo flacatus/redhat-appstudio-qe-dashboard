@@ -9,6 +9,7 @@ import { NotFound } from '@app/NotFound/NotFound';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import { LastLocationProvider, useLastLocation } from 'react-router-last-location';
 import { Repositories } from './Repositories/Repositories';
+import { JobsComponent } from './Jobs/Jobs';
 
 let routeFocusTimer: number;
 export interface IAppRoute {
@@ -50,12 +51,21 @@ const routes: AppRouteConfig[] = [
       },
     ],
   },
+
+  {
+    component: JobsComponent,
+    exact: true,
+    isAsync: true,
+    label: 'CI Jobs',
+    path: '/ci/jobs',
+    title: 'PatternFly Seed | Support Page',
+  },
   {
     component: Support,
     exact: true,
     isAsync: true,
-    label: 'Reports',
-    path: '/support',
+    label: 'Tests Reports',
+    path: '/reports/test',
     title: 'PatternFly Seed | Support Page',
   },
   {

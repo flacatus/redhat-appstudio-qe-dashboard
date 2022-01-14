@@ -36,3 +36,11 @@ type ErrorResponse struct {
 	// Required: false
 	StatusCode int `json:"statusCode"`
 }
+
+// SuccessResponse Represents an success message of a request.
+type SuccessResponse struct {
+
+	// The error message.
+	// Required: true
+	Message string `json:"message"`
+}

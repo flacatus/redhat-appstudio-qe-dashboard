@@ -27,8 +27,7 @@ export const FormModal = ()=> {
       setMonitorGithubActions(value);
       setChecked(value);
     };
-  
-   
+
     const onSubmit = () => {
       const data = {
         git_organization: gitOrganizationValue,
@@ -40,11 +39,9 @@ export const FormModal = ()=> {
         },
         artifacts: []
       }
-  
-      console.log(data)
-  
       handleModalToggle()
       createRepository(data)
+      window.location.reload();
   }
   
     return (
@@ -186,5 +183,3 @@ export const FormModal = ()=> {
       </React.Fragment>
     );
   };
-
-  

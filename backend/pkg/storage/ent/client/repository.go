@@ -3,9 +3,11 @@ package client
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/flacatus/qe-dashboard-backend/pkg/storage"
 	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db"
+	"github.com/flacatus/qe-dashboard-backend/pkg/storage/ent/db/repository"
 )
 
 // CreateRepository save provided repository information in database.
@@ -51,4 +53,17 @@ func (d *Database) ListRepositoriesQualityInfo() ([]storage.RepositoryQualityInf
 		storageRepositories = append(storageRepositories, toStorageRepositoryAllInfo(p, w, c))
 	}
 	return storageRepositories, nil
+}
+
+// DeletePassword deletes a password from the database by email.
+func (d *Database) DeleteRepository(repositoryName string, gitOrganizationName string) error {
+	repositoryName = strings.ToLower(repositoryName)
+	_, err := d.client.Repository.Delete().
+		Where(repository.RepositoryName(repositoryName)).Where(repository.GitOrganization(gitOrganizationName)).
+		Exec(context.TODO())
+
+	if err != nil {
+		return convertDBError("delete repository: %w", err)
+	}
+	return nil
 }
