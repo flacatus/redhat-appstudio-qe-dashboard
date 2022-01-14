@@ -56,14 +56,14 @@ func (s *Server) ErrorResponse(w http.ResponseWriter, r *http.Request, error str
 
 	body, err := json.Marshal(data)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(code)
 		s.logger.Error("JSON marshal failed", zap.Error(err))
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.WriteHeader(code)
+	//w.WriteHeader(code)
 	w.Write(prettyJSON(body))
 }
 

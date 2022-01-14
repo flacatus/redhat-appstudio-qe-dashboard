@@ -9,7 +9,7 @@ type WorkflowSpec struct {
 	Name     string `json:"name"`
 	BadgeURL string `json:"badge_url"`
 	HTML_URL string `json:"html_url"`
-	JobURL   string `json:"url"`
+	JobURL   string `json:"job_url"`
 	State    string `json:"state"`
 }
 

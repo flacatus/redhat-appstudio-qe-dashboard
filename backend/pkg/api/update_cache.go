@@ -2,16 +2,13 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
-	"github.com/flacatus/qe-dashboard-backend/config"
 	"github.com/flacatus/qe-dashboard-backend/pkg/api/apis/codecov"
 	"github.com/flacatus/qe-dashboard-backend/pkg/api/apis/github"
+	"github.com/flacatus/qe-dashboard-backend/pkg/storage"
 	"go.uber.org/zap"
 )
-
-var RepositoryCacheKey = "repositories"
 
 // rotationStrategy describes a strategy for generating server configuration from a file.
 type rotationStrategy struct {
@@ -20,7 +17,7 @@ type rotationStrategy struct {
 }
 
 // startUpdateCache begins repo information rotation in a new goroutine, closing once the context is canceled.
-func (s *Server) startUpdateCache(ctx context.Context, strategy rotationStrategy, now func() time.Time) {
+func (s *Server) startUpdateStorage(ctx context.Context, strategy rotationStrategy, now func() time.Time) {
 	// Try to rotate immediately so properly configured repositories.
 	if err := s.rotate(); err != nil {
 		s.logger.Sugar().Infof("Update failed: %v", err)
@@ -41,17 +38,11 @@ func (s *Server) startUpdateCache(ctx context.Context, strategy rotationStrategy
 }
 
 func (s *Server) rotate() error {
-	qualityInformation, err := s.CacheRepositoriesInformation()
+	err := s.CacheRepositoriesInformation()
 	if err != nil {
 		s.logger.Sugar().Errorf("Failed to update cache", zap.Error(err))
 		return err
 	}
-
-	// set a value with a cost of 1
-	s.cache.Set(RepositoryCacheKey, qualityInformation, 1)
-
-	// wait for value to pass through buffers
-	s.cache.Wait()
 
 	return nil
 }
@@ -59,68 +50,58 @@ func (s *Server) rotate() error {
 func staticRotationStrategy() rotationStrategy {
 	return rotationStrategy{
 		// Setting these values to 4 hours is easier than having a flag indicating no rotation.
-		rotationFrequency: time.Minute * 20,
+		rotationFrequency: time.Minute * 1,
 	}
 }
 
-func (s *Server) CacheRepositoriesInformation() (repos []Repos, err error) {
-	gh := github.NewGitubClient()
-	codecov := codecov.NewCodeCoverageClient()
-
-	cfg := s.obtainRepositoriesConfiguration()
+func (s *Server) CacheRepositoriesInformation() error {
+	storageRepos, err := s.config.Storage.ListRepositories()
 	if err != nil {
-		s.logger.Sugar().Errorf("Failed to obtain configuration from file", zap.Error(err))
-		return repos, err
-	}
-	if len(cfg.Spec.Git) == 0 {
-		return repos, nil
+		return err
 	}
 
-	for _, repo := range cfg.Spec.Git {
-		s.logger.Sugar().Infof("Obtaining quality information for organization %s from repository %s", repo.GitOrganization, repo.GitRepository)
-
-		repoInfo, err := gh.GetRepositoriesInformation(repo.GitOrganization, repo.GitRepository)
+	for _, repo := range storageRepos {
+		workf, err := s.getGithubWorkflows(repo.GitOrganization, repo.RepositoryName)
 		if err != nil {
-			s.logger.Sugar().Errorf("Failed to obtain information from Github", zap.Error(err), zap.String("organization", repo.GitOrganization), zap.String("repository", repo.GitRepository))
-			return repos, err
+			return err
 		}
 
-		codecov, err := codecov.GetCodeCovInfo(repo.GitOrganization, repo.GitRepository)
-		if err != nil {
-			s.logger.Sugar().Errorf("Failed to obtain information from Codecov", zap.Error(err), zap.String("organization", repo.GitOrganization), zap.String("repository", repo.GitRepository))
-			return repos, err
+		for _, w := range workf.Workflows {
+			err = s.config.Storage.ReCreateWorkflow(storage.GithubWorkflows{
+				WorkflowName: w.Name,
+				BadgeURL:     w.BadgeURL,
+				HTMLURL:      w.HTML_URL,
+				JobURL:       w.JobURL,
+				State:        w.State,
+			}, repo.RepositoryName)
+			if err != nil {
+				return err
+			}
 		}
 
-		workflows, err := gh.GetRepositoryWorkflows(repo.GitOrganization, repo.GitRepository)
+		coverage, err := s.getCodeCoverage(repo.GitOrganization, repo.RepositoryName)
 		if err != nil {
-			s.logger.Sugar().Errorf("Failed to obtain workflows information", zap.Error(err), zap.String("organization", repo.GitOrganization), zap.String("repository", repo.GitRepository))
-			return repos, err
+			return err
 		}
-
-		repos = append(repos, Repos{
-			GitOrganization: repo.GitOrganization,
-			RepositoryName:  repoInfo.RepositoryName,
-			Description:     repoInfo.Description,
-			HTMLUrl:         repoInfo.HTMLUrl,
-			Coverage: CoverageSpec{
-				CodeCoverage: codecov.Commit.Totals.TotalCoverage,
-			},
-			Jobs: JobSpec{
-				GithubActions: workflows,
-			},
-			Artifacts: []ArtifatcSpec{},
-		})
+		totalCoverageConverted, _ := coverage.Commit.Totals.TotalCoverage.Float64()
+		err = s.config.Storage.UpdateCoverage(storage.Coverage{
+			GitOrganization:    repo.GitOrganization,
+			RepositoryName:     repo.RepositoryName,
+			CoveragePercentage: totalCoverageConverted,
+		}, repo.RepositoryName)
+		if err != nil {
+			return err
+		}
 	}
+	s.logger.Info("Successfully updated the storage data")
 
-	return repos, err
+	return nil
 }
 
-func (s *Server) obtainRepositoriesConfiguration() config.ConfigSpec {
-	var cfg config.ConfigSpec
-	repoList, _ := s.cache.Get("config")
+func (s *Server) getGithubWorkflows(gitOrganization string, repoName string) (github.GitHubActionsResponse, error) {
+	return s.githubAPI.GetRepositoryWorkflows(gitOrganization, repoName)
+}
 
-	cacheRepos, _ := json.Marshal(repoList)
-	json.Unmarshal(cacheRepos, &cfg)
-
-	return cfg
+func (s *Server) getCodeCoverage(gitOrganization string, repoName string) (codecov.GitHubTagResponse, error) {
+	return s.codecovAPI.GetCodeCovInfo(gitOrganization, repoName)
 }

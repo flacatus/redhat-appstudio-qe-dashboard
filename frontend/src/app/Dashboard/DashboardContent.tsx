@@ -6,7 +6,7 @@ import { PageSection } from '@patternfly/react-core';
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const DashboardContent = () => {
-  const columns = ['Git Organization', 'Repository', 'Coverage', 'Artifacts'];
+  const columns = ['Git Organization', 'Repository', 'Coverage'];
 
   const [repositories, setRepositories] = useState([])
   const { state, dispatch } = useContext(Context) // required to access the global state 
@@ -15,7 +15,6 @@ export const DashboardContent = () => {
     getRepositories().then((res) => {
       if(res.code === 200){
           const result = res.data;
-          console.log(result)
           dispatch({ type: "SET_REPOSITORIES", data: result });
       } else {
           dispatch({ type: "SET_ERROR", data: res });
@@ -24,7 +23,7 @@ export const DashboardContent = () => {
   }, [repositories, setRepositories, dispatch])
 
   const rows = state.repositories.map((repo)=>{
-    return [repo.git_organization, repo.repository_name, repo.coverage.code_coverage.toFixed(2)+"%", repo.artifacts.length]
+    return [repo.git_organization, repo.repository_name, repo.code_coverage.coverage_percentage.toFixed(2)+"%"/*, repo.artifacts.length*/]
   })
 
   return (

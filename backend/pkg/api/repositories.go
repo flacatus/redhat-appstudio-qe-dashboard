@@ -1,42 +1,16 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
-	"reflect"
-	"time"
 
-	"github.com/flacatus/qe-dashboard-backend/config"
-	"github.com/flacatus/qe-dashboard-backend/pkg/api/apis/github"
+	"github.com/flacatus/qe-dashboard-backend/pkg/storage"
 )
 
-type SecurityScannerSpec struct {
-	Vulnerabilities int64 `json:"vulnerabilities"`
-}
-
-type ArtifatcSpec struct {
-	ArtifactName    string              `json:"artifact_name"`
-	QuayRepo        string              `json:"quay_repo"`
-	SecurityScanner SecurityScannerSpec `json:"security_scanner"`
-}
-
-type JobSpec struct {
-	GithubActions github.GitHubActionsResponse `json:"github_actions"`
-}
-
-type CoverageSpec struct {
-	CodeCoverage json.Number `json:"code_coverage"`
-}
-
-type Repos struct {
-	GitOrganization string         `json:"git_organization"`
-	RepositoryName  string         `json:"repository_name,omitempty"`
-	HTMLUrl         string         `json:"html_url,omitempty"`
-	Description     string         `json:"description,omitempty"`
-	Jobs            JobSpec        `json:"jobs,omitempty"`
-	Artifacts       []ArtifatcSpec `json:"artifacts"`
-	Coverage        CoverageSpec   `json:"coverage,omitempty"`
+type RepositoryDeleteRequest struct {
+	GitOrganization string `json:"git_organization"`
+	GitRepository   string `json:"repository_name"`
 }
 
 // Version godoc
@@ -48,13 +22,7 @@ type Repos struct {
 // @Success 200
 func (s *Server) repositoriesHandler(w http.ResponseWriter, r *http.Request) {
 	// set a value with a cost of 1
-	repoList, _ := s.cache.Get(RepositoryCacheKey)
-
-	if reflect.ValueOf(repoList).IsNil() {
-		s.ErrorResponse(w, r, "Failed to obtain repositories. There are no repository cached", 500)
-	} else {
-		s.JSONResponse(w, r, repoList)
-	}
+	s.JSONResponse(w, r, storage.Coverage{RepositoryName: "e2e"})
 }
 
 // Version godoc
@@ -65,34 +33,124 @@ func (s *Server) repositoriesHandler(w http.ResponseWriter, r *http.Request) {
 // @Router /api/quality/repositories/create [post]
 // @Success 200
 func (s *Server) repositoriesCreateHandler(w http.ResponseWriter, r *http.Request) {
-	var repos config.GitRepository
-	var cfg config.ConfigSpec
-
-	json.NewDecoder(r.Body).Decode(&repos)
-
-	repoList, found := s.cache.Get("config")
-	if !found {
-		s.logger.Sugar().Errorf("Failed to initialize cache")
-		s.ErrorResponse(w, r, "Failed to obtain repositories. There are no repository cached", 500)
-	}
-	cacheRepos, err := json.Marshal(repoList)
+	var repository GitRepositoryRequest
+	json.NewDecoder(r.Body).Decode(&repository)
+	fmt.Println(repository.GitOrganization)
+	fmt.Println(repository.GitRepository)
+	repoInfo, err := s.githubAPI.GetRepositoriesInformation(repository.GitOrganization, repository.GitRepository)
 	if err != nil {
-		s.logger.Sugar().Errorf("Failed to initialize cache")
+		s.logger.Sugar().Errorf("Failed to save repository %v", err)
 		s.ErrorResponse(w, r, "Failed to obtain repositories. There are no repository cached", 500)
+
+		return
 	}
-	err = json.Unmarshal(cacheRepos, &cfg)
+	repo, err := s.config.Storage.CreateRepository(storage.Repository{
+		RepositoryName:  repoInfo.RepositoryName,
+		GitOrganization: repository.GitOrganization,
+		Description:     repoInfo.Description,
+		GitURL:          repoInfo.HTMLUrl,
+	})
+	if err != nil {
+		s.logger.Sugar().Errorf("Failed to save repository %v", err)
+		s.ErrorResponse(w, r, "Failed to obtain repositories. There are no repository cached", 500)
+
+		return
+	}
+
+	coverage, err := s.codecovAPI.GetCodeCovInfo(repo.GitOrganization, repo.RepositoryName)
+	if err != nil {
+		s.logger.Sugar().Errorf("Failed to save repository %v", err)
+		s.ErrorResponse(w, r, "Failed to obtain repositories. There are no repository cached", 500)
+
+		return
+	}
+	totalCoverageConverted, _ := coverage.Commit.Totals.TotalCoverage.Float64()
+	err = s.config.Storage.CreateCoverage(storage.Coverage{
+		GitOrganization:    repo.GitOrganization,
+		RepositoryName:     repo.RepositoryName,
+		CoveragePercentage: totalCoverageConverted,
+	}, repo.ID)
 
 	if err != nil {
-		s.logger.Sugar().Errorf("Failed to initialize cache")
+		s.logger.Sugar().Errorf("Failed to save repository %v", err)
 		s.ErrorResponse(w, r, "Failed to obtain repositories. There are no repository cached", 500)
+
+		return
 	}
 
-	cfg.Spec.Git = append(cfg.Spec.Git, repos)
+	workflows, err := s.githubAPI.GetRepositoryWorkflows(repo.GitOrganization, repo.RepositoryName)
+	for _, w := range workflows.Workflows {
+		s.config.Storage.CreateWorkflows(storage.GithubWorkflows{
+			WorkflowName: w.Name,
+			BadgeURL:     w.BadgeURL,
+			HTMLURL:      w.HTML_URL,
+			JobURL:       w.JobURL,
+			State:        w.State,
+		}, repo.ID)
+	}
+	if err != nil {
+		s.logger.Sugar().Errorf("Failed to save repository %v", err)
+		s.ErrorResponse(w, r, "Failed to obtain repositories. There are no repository cached", 500)
 
-	s.cache.Set("config", cfg, 1)
+		return
+	}
 
-	str := staticRotationStrategy()
-	s.startUpdateCache(context.TODO(), str, time.Now)
+	s.JSONResponse(w, r, repo)
+}
 
+// Version godoc
+// @Summary Quality Repositories
+// @Description returns all repository information founded in server configuration
+// @Tags HTTP API
+// @Produce json
+// @Router /api/quality/repositories [get]
+// @Success 200
+func (s *Server) listRepositoriesHandler(w http.ResponseWriter, r *http.Request) {
+	// set a value with a cost of 1
+	repos, err := s.config.Storage.ListRepositoriesQualityInfo()
+
+	if err != nil {
+		s.ErrorResponse(w, r, "Failed to get repositories", 500)
+		return
+	}
 	s.JSONResponse(w, r, repos)
+}
+
+// Version godoc
+// @Summary Quality Repositories
+// @Description returns all repository information founded in server configuration
+// @Tags HTTP API
+// @Produce json
+// @Router /api/quality/repositories [get]
+// @Success 200
+func (s *Server) listWorkflowsHandler(w http.ResponseWriter, r *http.Request) {
+	repositoryName := r.URL.Query()["repository_name"]
+	workflows, err := s.config.Storage.ListWorkflowsByRepository(repositoryName[0])
+	if err != nil {
+		s.ErrorResponse(w, r, "Failed to get repositories", 500)
+		return
+	}
+	s.JSONResponse(w, r, workflows)
+}
+
+func (s *Server) deleteRepositoryHandler(w http.ResponseWriter, r *http.Request) {
+	var repository RepositoryDeleteRequest
+	json.NewDecoder(r.Body).Decode(&repository)
+	if repository.GitRepository == "" {
+		s.ErrorResponse(w, r, "Failed to remove repository. Field 'repository_name' missing", 400)
+		return
+	}
+	if repository.GitOrganization == "" {
+		s.ErrorResponse(w, r, "Failed to remove repository. Field 'git_organization' missing", 400)
+		return
+	}
+	err := s.config.Storage.DeleteRepository(repository.GitRepository, repository.GitOrganization)
+	if err != nil {
+		s.ErrorResponse(w, r, "Failed to remove repository", 400)
+		return
+	}
+
+	s.JSONResponse(w, r, SuccessResponse{
+		Message: "Repository deleted",
+	})
 }
